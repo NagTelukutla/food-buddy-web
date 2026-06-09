@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="100%" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg1)"/>
+  <ellipse cx="400" cy="280" rx="220" ry="90" fill="#1a1209" opacity="0.25"/>
+  <ellipse cx="400" cy="260" rx="180" ry="70" fill="#fff7ed" opacity="0.95"/>
+  <ellipse cx="400" cy="250" rx="150" ry="55" fill="#fdba74"/>
+  <circle cx="320" cy="200" r="28" fill="#f97316" opacity="0.9"/>
+  <circle cx="480" cy="190" r="22" fill="#dc2626" opacity="0.85"/>
+  <circle cx="400" cy="175" r="18" fill="#16a34a" opacity="0.8"/>
+  <text x="400" y="420" text-anchor="middle" fill="#fff7ed" font-family="Georgia, serif" font-size="36" font-weight="bold">Andhra Welcome</text>
+</svg>
