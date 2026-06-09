@@ -1,0 +1,11 @@
+export default function LoadingSpinner({ size = 'md' }) {
+  const sizeClass =
+    size === 'lg' ? 'h-12 w-12' : size === 'sm' ? 'h-5 w-5' : 'h-8 w-8';
+  return (
+    <div
+      className={`${sizeClass} animate-spin rounded-full border-4 border-brand-200 border-t-brand-600`}
+      role="status"
+      aria-label="Loading"
+    />
+  );
+}
