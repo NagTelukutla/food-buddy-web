@@ -16,6 +16,7 @@ import {
   ROLES,
 } from '../../utils/roles';
 import ProfileMenu from './ProfileMenu';
+import ModalShell from '../common/ModalShell';
 
 function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
   if (link.isCart) {
@@ -25,15 +26,19 @@ function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
           to={link.to}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `nav-mobile-item ${isActive ? 'bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md' : 'bg-brand-50 text-brand-800 hover:bg-brand-100'}`
+            `nav-mobile-item rounded-xl transition-all duration-200 ${
+              isActive
+                ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
+                : 'bg-white/20 text-brand-900 hover:bg-white/40 active:bg-white/60'
+            }`
           }
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700">
             {link.icon}
           </span>
           <span className="flex-1">Cart</span>
           {itemCount > 0 && (
-            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-dark-900 px-2 text-xs font-bold text-white">
+            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-brand-600 px-2 text-xs font-bold text-white">
               {itemCount}
             </span>
           )}
@@ -66,10 +71,14 @@ function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
           end={link.end}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `nav-mobile-item border border-stone-200 ${isActive ? 'border-brand-300 bg-brand-50 text-brand-700' : 'bg-white text-stone-700 hover:border-brand-200 hover:bg-stone-50'}`
+            `nav-mobile-item border border-white/30 rounded-xl transition-all duration-200 ${
+              isActive
+                ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
+                : 'bg-white/20 text-stone-800 hover:bg-white/40 active:bg-white/60'
+            }`
           }
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-100 text-stone-600">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/40 text-stone-600">
             {link.icon}
           </span>
           {link.label}
@@ -97,12 +106,16 @@ function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
         end={link.end}
         onClick={onNavigate}
         className={({ isActive }) =>
-          `nav-mobile-item ${isActive ? 'bg-brand-100 text-brand-800 shadow-sm' : 'text-stone-700 hover:bg-stone-100'}`
+          `nav-mobile-item rounded-xl transition-all duration-200 ${
+            isActive
+              ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
+              : 'text-stone-800 hover:bg-white/30 active:bg-white/50'
+          }`
         }
       >
         <span
           className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-            link.to === '/' ? 'bg-brand-100 text-brand-700' : 'bg-stone-100 text-stone-600'
+            link.to === '/' ? 'bg-brand-500/10 text-brand-700' : 'bg-white/40 text-stone-600'
           }`}
         >
           {link.icon}
@@ -131,8 +144,13 @@ export default function AppNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const staffOnlyHeader = isStaffOnlyHeader(activeSessions);
+  const isStaffRoute =
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/platform') ||
+    location.pathname.startsWith('/delivery');
+  const staffOnlyHeader = isStaffOnlyHeader(activeSessions) && isStaffRoute;
   const navLinks = useMemo(() => buildNavLinks(activeSessions), [activeSessions]);
   const showCart = canUseCartFeatures(activeSessions);
   const showLogin = shouldShowLogin(activeSessions);
@@ -152,12 +170,12 @@ export default function AppNavbar() {
   );
 
   const pillLinks = staffOnlyHeader
-    ? staffDashLinks
+    ? []
     : navLinks.filter((l) => !l.isCart && l.id !== 'login');
   const cartLink = staffOnlyHeader ? null : navLinks.find((l) => l.isCart);
   const mobileNavLinks = staffOnlyHeader
-    ? staffDashLinks
-    : navLinks.filter((l) => l.id !== 'login');
+    ? []
+    : navLinks;
   const showMainNav = pillLinks.length > 0 || !!cartLink;
 
   const profilePath = useMemo(() => {
@@ -172,14 +190,48 @@ export default function AppNavbar() {
 
   useEffect(() => {
     setMenuOpen(false);
+    setSidebarOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    const handleToggle = () => setSidebarOpen((open) => !open);
+    const handleOpen = () => setSidebarOpen(true);
+    const handleClose = () => setSidebarOpen(false);
+
+    window.addEventListener('toggle-sidebar', handleToggle);
+    window.addEventListener('open-sidebar', handleOpen);
+    window.addEventListener('close-sidebar', handleClose);
+    return () => {
+      window.removeEventListener('toggle-sidebar', handleToggle);
+      window.removeEventListener('open-sidebar', handleOpen);
+      window.removeEventListener('close-sidebar', handleClose);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
     return () => {
       document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, [menuOpen]);
+
+  useEffect(() => {
+    console.log('[AppNavbar Debug] Mobile Menu State:', {
+      menuOpen,
+      isStaffRoute,
+      staffOnlyHeader,
+      zindexBackdrop: 99998,
+      zindexMenu: 99999,
+      bodyScrollLocked: document.body.style.overflow === 'hidden'
+    });
+  }, [menuOpen, isStaffRoute, staffOnlyHeader]);
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -198,7 +250,7 @@ export default function AppNavbar() {
           onClick={closeMenu}
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 p-1.5 shadow-md shadow-brand-600/20 transition group-hover:shadow-lg">
-            <img src="/logo.svg" alt="" className="h-full w-full" />
+            <img src="/logo.png" alt="" className="h-full w-full" />
           </span>
           <span className="truncate font-display text-base font-bold text-brand-900 sm:text-lg">
             <span className="sm:hidden">{shortName}</span>
@@ -220,7 +272,30 @@ export default function AppNavbar() {
         {!showMainNav && <div className="flex-1" aria-hidden />}
 
         <div className="flex shrink-0 items-center gap-2">
-          {!staffOnlyHeader ? (
+          {staffOnlyHeader ? (
+            <button
+              type="button"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('toggle-sidebar'));
+              }}
+              className={`nav-icon-btn border bg-white ${
+                sidebarOpen
+                  ? 'border-brand-300 bg-brand-50 text-brand-700'
+                  : 'border-stone-200 text-stone-700 hover:border-brand-200 hover:bg-stone-50'
+              } md:hidden`}
+              aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+            >
+              {sidebarOpen ? (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          ) : (
             <div className="flex items-center gap-2 md:hidden">
               {showCart && (
                 <Link
@@ -260,25 +335,19 @@ export default function AppNavbar() {
                 )}
               </button>
             </div>
-          ) : (
-            staffDashLinks.length > 0 && (
-              <div className="flex items-center gap-2 md:hidden">
-                {staffDashLinks.map((link) => (
-                  <NavLinkItem key={link.id} link={link} itemCount={itemCount} />
-                ))}
-              </div>
-            )
           )}
 
           {identifiedUser ? (
-            <ProfileMenu
-              user={identifiedUser}
-              profilePath={profilePath}
-              profileLabel={profileLabel}
-              onLogout={handleLogout}
-            />
+            <div className="hidden md:block">
+              <ProfileMenu
+                user={identifiedUser}
+                profilePath={profilePath}
+                profileLabel={profileLabel}
+                onLogout={handleLogout}
+              />
+            </div>
           ) : showLogin ? (
-            <Link to="/login" className="nav-admin-btn">
+            <Link to="/login" className="nav-admin-btn hidden md:inline-flex">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>
@@ -289,50 +358,19 @@ export default function AppNavbar() {
       </div>
 
       {menuOpen && !staffOnlyHeader && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
-            onClick={closeMenu}
-            aria-label="Close menu overlay"
-          />
-          <nav
-            className="app-mobile-nav fixed right-0 z-50 flex w-[min(100%,320px)] flex-col bg-white shadow-2xl md:hidden"
-            aria-label="Mobile navigation"
-          >
-            <div className="flex items-center justify-between border-b border-stone-100 bg-gradient-to-r from-brand-50 to-white px-4 py-4">
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wider text-brand-600">Navigation</p>
-                {identifiedUser ? (
-                  <p className="truncate font-display text-sm font-bold text-stone-800">{identifiedUser.full_name}</p>
-                ) : (
-                  <p className="font-display text-sm font-bold text-stone-800">{shortName}</p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={closeMenu}
-                className="nav-icon-btn border border-stone-200 bg-white text-stone-600 hover:bg-stone-50"
-                aria-label="Close menu"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
-              {mobileNavLinks.map((link) => (
-                <NavLinkItem
-                  key={link.id}
-                  link={link}
-                  itemCount={itemCount}
-                  onNavigate={closeMenu}
-                  mobile
-                />
-              ))}
-            </div>
-          </nav>
-        </>
+        <ModalShell title="Navigation" onClose={closeMenu}>
+          <div className="flex flex-col gap-2 pt-2">
+            {mobileNavLinks.map((link) => (
+              <NavLinkItem
+                key={link.id}
+                link={link}
+                itemCount={itemCount}
+                onNavigate={closeMenu}
+                mobile
+              />
+            ))}
+          </div>
+        </ModalShell>
       )}
     </header>
   );

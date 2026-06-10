@@ -15,9 +15,34 @@ export default function PlatformLayout() {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
+  const closeSidebar = () => {
     setMenuOpen(false);
+    window.dispatchEvent(new CustomEvent('close-sidebar'));
+  };
+
+  useEffect(() => {
+    closeSidebar();
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleToggle = () => setMenuOpen((open) => !open);
+    window.addEventListener('toggle-sidebar', handleToggle);
+    return () => window.removeEventListener('toggle-sidebar', handleToggle);
+  }, []);
+
+  useEffect(() => {
+    if (menuOpen) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [menuOpen]);
 
   const handleLogout = () => {
     logout();
@@ -29,7 +54,7 @@ export default function PlatformLayout() {
       <aside className="app-sidebar fixed bottom-0 left-0 z-40 hidden w-64 flex-col border-r border-stone-200 bg-dark-900 text-stone-200 md:flex">
         <div className="shrink-0 border-b border-stone-700 px-6 py-5">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" className="h-8 w-8" />
+            <img src="/logo.png" alt="" className="h-8 w-8" />
             <span className="font-display text-lg text-white">Super Admin</span>
           </Link>
         </div>
@@ -51,67 +76,55 @@ export default function PlatformLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="shrink-0 border-t border-stone-700 p-4">
-          <p className="mb-2 truncate text-xs text-stone-400">{user?.full_name}</p>
-          <button type="button" onClick={handleLogout} className="btn-secondary w-full text-xs">
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <div className="flex min-h-screen min-w-0 flex-col md:ml-64">
-        <header className="app-subheader sticky z-30 border-b border-stone-200 bg-white md:hidden">
-          <div className="flex items-center justify-between gap-3 px-4 py-3">
-            <button
-              type="button"
-              onClick={() => setMenuOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-stone-300"
-              aria-label="Open super admin menu"
+        <div className="shrink-0 border-t border-stone-700 p-4 space-y-2.5">
+          <div className="flex items-center gap-3 px-1 py-0.5">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+              {user?.full_name ? user.full_name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() : '?'}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{user?.full_name}</p>
+              <p className="truncate text-[11px] text-stone-400">Super Admin</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link
+              to="/platform/profile"
+              className="btn-secondary flex-1 py-1.5 text-center text-xs"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <span className="truncate font-semibold text-stone-800">Super Admin</span>
+              Profile
+            </Link>
             <button
               type="button"
               onClick={handleLogout}
-              className="shrink-0 text-sm font-medium text-brand-600"
+              className="btn-primary flex-1 py-1.5 text-xs"
             >
               Logout
             </button>
           </div>
-        </header>
+        </div>
+      </aside>
 
+      <div className="flex min-h-screen min-w-0 flex-col md:ml-64">
         {menuOpen && (
           <>
             <button
               type="button"
-              className="fixed inset-0 z-40 bg-black/40 md:hidden"
-              onClick={() => setMenuOpen(false)}
+              className="fixed inset-0 z-40 animate-fade-in-backdrop md:hidden"
+              onClick={closeSidebar}
               aria-label="Close menu"
             />
-            <nav className="app-sidebar fixed bottom-0 left-0 z-50 flex w-[min(100%,260px)] flex-col bg-dark-900 text-stone-200 md:hidden">
-              <div className="flex items-center justify-between border-b border-stone-700 px-4 py-4">
-                <span className="font-semibold text-white">Menu</span>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen(false)}
-                  className="text-stone-400"
-                  aria-label="Close"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="flex-1 space-y-1 overflow-y-auto p-3">
+            <nav className="fixed top-[4.75rem] right-3 bottom-3 z-50 flex w-[min(85%,280px)] flex-col bg-white/25 backdrop-blur-[24px] border border-white/40 rounded-[1.75rem] shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden animate-slide-in-right md:hidden">
+              <div className="flex-1 space-y-1 overflow-y-auto p-3 pt-5">
                 {navItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
-                    onClick={() => setMenuOpen(false)}
+                    onClick={closeSidebar}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium ${
-                        isActive ? 'bg-brand-600 text-white' : 'text-stone-300'
+                      `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
+                        isActive
+                          ? 'bg-brand-600 text-white shadow-md shadow-brand-600/10'
+                          : 'text-stone-800 hover:bg-white/30 active:bg-white/50'
                       }`
                     }
                   >
@@ -120,16 +133,40 @@ export default function PlatformLayout() {
                   </NavLink>
                 ))}
               </div>
-              <div className="shrink-0 border-t border-stone-700 p-4">
-                <p className="mb-2 truncate text-xs text-stone-400">{user?.full_name}</p>
-                <button type="button" onClick={handleLogout} className="btn-secondary w-full text-xs">
-                  Logout
-                </button>
+              <div className="shrink-0 border-t border-white/10 p-4 space-y-2.5 bg-white/10 backdrop-blur-md">
+                <div className="flex items-center gap-3 px-1 py-0.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
+                    {user?.full_name ? user.full_name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() : '?'}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-stone-800">{user?.full_name}</p>
+                    <p className="truncate text-[11px] text-stone-500">Super Admin</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Link
+                    to="/platform/profile"
+                    onClick={closeSidebar}
+                    className="btn-secondary bg-white/40 border-white/20 hover:bg-white/60 flex-1 py-1.5 text-center text-xs"
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeSidebar();
+                      handleLogout();
+                    }}
+                    className="btn-primary flex-1 py-1.5 text-xs"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             </nav>
           </>
         )}
-        <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 md:p-8">
+         <div className={`flex-1 overflow-x-hidden p-4 sm:p-6 md:p-8 ${menuOpen ? 'overflow-y-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
         </div>
       </div>

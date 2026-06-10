@@ -16,11 +16,15 @@ export default function AdminProfilePage() {
   const { user, role } = useAuth();
   if (!user) return null;
 
+  const isPlatform = role === 'platform' || role === 'platform_admin' || window.location.pathname.startsWith('/platform');
+  const parentLabel = isPlatform ? 'Super Admin' : 'Admin';
+  const parentPath = isPlatform ? '/platform/dashboard' : '/admin/dashboard';
+
   return (
     <div>
       <AdminPageHeader
         title="My Profile"
-        breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Profile' }]}
+        breadcrumbs={[{ label: parentLabel, to: parentPath }, { label: 'Profile' }]}
       />
 
       <div className="card overflow-hidden p-0">

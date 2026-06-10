@@ -87,7 +87,7 @@ export default function HeroSlider({ settings }) {
         <div className="grid items-center gap-5 md:grid-cols-2 md:gap-8">
           <div className="max-w-xl">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt=""
               className="mb-3 h-11 w-11 sm:h-12 sm:w-12"
             />

@@ -103,6 +103,7 @@ export default function AppRoutes() {
           <Route path="restaurants" element={<PlatformRestaurantsPage />} />
           <Route path="users" element={<PlatformUsersPage />} />
           <Route path="rbac" element={<PlatformRbacPage />} />
+          <Route path="profile" element={<AdminProfilePage />} />
         </Route>
 
         <Route
