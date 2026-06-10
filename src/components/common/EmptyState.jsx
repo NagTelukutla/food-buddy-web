@@ -97,11 +97,9 @@ export default function EmptyState({
 
   if (inline) {
     return (
-      <div
-        className={`flex items-start gap-3 rounded-xl border border-dashed border-stone-200 bg-gradient-to-r from-stone-50 to-white px-4 py-3 text-left ${className}`.trim()}
-      >
+      <div className={`glass-empty-inline ${className}`.trim()}>
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br [&_svg]:h-5 [&_svg]:w-5 ${iconStyle}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br backdrop-blur-sm [&_svg]:h-5 [&_svg]:w-5 ${iconStyle}`}
         >
           {iconNode}
         </span>
@@ -116,15 +114,15 @@ export default function EmptyState({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-dashed border-stone-200 bg-gradient-to-br from-stone-50 via-white to-stone-50 text-center ${
+      className={`glass-empty ${
         compact ? 'px-5 py-10' : 'px-6 py-14 sm:py-16'
       } ${className}`.trim()}
     >
-      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-100/40 blur-2xl" />
-      <div className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-stone-200/50 blur-2xl" />
+      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand-200/35 blur-2xl" />
+      <div className="pointer-events-none absolute -bottom-8 -left-8 h-28 w-28 rounded-full bg-white/30 blur-2xl" />
 
-      <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br shadow-sm ring-1 ring-white/80 sm:h-[4.5rem] sm:w-[4.5rem]">
-        <span className={`flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br ${iconStyle}`}>
+      <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm ring-1 ring-white/70 sm:h-[4.5rem] sm:w-[4.5rem]">
+        <span className={`flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br backdrop-blur-sm ${iconStyle}`}>
           {iconNode}
         </span>
       </div>

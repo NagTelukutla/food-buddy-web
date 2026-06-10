@@ -5,47 +5,45 @@ import { useCart } from '../../context/CartContext';
 import { APP_NAME } from '../../utils/constants';
 import {
   buildNavLinks,
+  buildMobileNavLinks,
   isStaffOnlyHeader,
   shouldShowLogin,
 } from '../../utils/navLinks';
 import {
   canUseCartFeatures,
   getCustomerSession,
+  getLogoHomePath,
   getStaffProfilePath,
   getStaffSessions,
+  getRoleLabel,
   ROLES,
 } from '../../utils/roles';
 import ProfileMenu from './ProfileMenu';
-import ModalShell from '../common/ModalShell';
+import MobileSlideMenu from './MobileSlideMenu';
+import MobileSlideMenuProfileFooter from './MobileSlideMenuProfileFooter';
+import { getMobileNavLinkClass } from '../../utils/mobileNavStyles';
 
 function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
-  if (link.isCart) {
-    if (mobile) {
-      return (
-        <NavLink
-          to={link.to}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `nav-mobile-item rounded-xl transition-all duration-200 ${
-              isActive
-                ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
-                : 'bg-white/20 text-brand-900 hover:bg-white/40 active:bg-white/60'
-            }`
-          }
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500/10 text-brand-700">
-            {link.icon}
+  if (mobile) {
+    return (
+      <NavLink
+        to={link.to}
+        end={link.end}
+        onClick={onNavigate}
+        className={({ isActive }) => getMobileNavLinkClass(isActive)}
+      >
+        <span>{link.icon}</span>
+        <span className="flex-1">{link.isCart ? 'Cart' : link.label}</span>
+        {link.isCart && itemCount > 0 && (
+          <span className="flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
+            {itemCount}
           </span>
-          <span className="flex-1">Cart</span>
-          {itemCount > 0 && (
-            <span className="flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-brand-600 px-2 text-xs font-bold text-white">
-              {itemCount}
-            </span>
-          )}
-        </NavLink>
-      );
-    }
+        )}
+      </NavLink>
+    );
+  }
 
+  if (link.isCart) {
     return (
       <NavLink
         to={link.to}
@@ -64,28 +62,6 @@ function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
   }
 
   if (link.isAuth) {
-    if (mobile) {
-      return (
-        <NavLink
-          to={link.to}
-          end={link.end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            `nav-mobile-item border border-white/30 rounded-xl transition-all duration-200 ${
-              isActive
-                ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
-                : 'bg-white/20 text-stone-800 hover:bg-white/40 active:bg-white/60'
-            }`
-          }
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/40 text-stone-600">
-            {link.icon}
-          </span>
-          {link.label}
-        </NavLink>
-      );
-    }
-
     return (
       <NavLink
         to={link.to}
@@ -94,32 +70,6 @@ function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
         className={({ isActive }) => `nav-admin-btn ${isActive ? 'nav-admin-btn-active' : ''}`}
       >
         {link.icon}
-        {link.label}
-      </NavLink>
-    );
-  }
-
-  if (mobile) {
-    return (
-      <NavLink
-        to={link.to}
-        end={link.end}
-        onClick={onNavigate}
-        className={({ isActive }) =>
-          `nav-mobile-item rounded-xl transition-all duration-200 ${
-            isActive
-              ? 'bg-brand-600 text-white font-semibold shadow-md shadow-brand-600/10'
-              : 'text-stone-800 hover:bg-white/30 active:bg-white/50'
-          }`
-        }
-      >
-        <span
-          className={`flex h-9 w-9 items-center justify-center rounded-lg ${
-            link.to === '/' ? 'bg-brand-500/10 text-brand-700' : 'bg-white/40 text-stone-600'
-          }`}
-        >
-          {link.icon}
-        </span>
         {link.label}
       </NavLink>
     );
@@ -164,18 +114,14 @@ export default function AppNavbar() {
   const fullName = APP_NAME;
   const shortName = APP_NAME;
 
-  const staffDashLinks = useMemo(
-    () => navLinks.filter((l) => l.group === 'staff'),
-    [navLinks]
-  );
-
   const pillLinks = staffOnlyHeader
     ? []
     : navLinks.filter((l) => !l.isCart && l.id !== 'login');
   const cartLink = staffOnlyHeader ? null : navLinks.find((l) => l.isCart);
-  const mobileNavLinks = staffOnlyHeader
-    ? []
-    : navLinks;
+  const mobileNavLinks = useMemo(
+    () => (staffOnlyHeader ? [] : buildMobileNavLinks(activeSessions)),
+    [activeSessions, staffOnlyHeader]
+  );
   const showMainNav = pillLinks.length > 0 || !!cartLink;
 
   const profilePath = useMemo(() => {
@@ -187,6 +133,14 @@ export default function AppNavbar() {
     return staffRole ? getStaffProfilePath(staffRole) : '/login';
   }, [customerSession, location.pathname, staffSessions]);
   const profileLabel = customerSession ? 'My Profile' : 'Profile';
+  const mobileProfileRoleLabel = customerSession
+    ? 'Customer'
+    : getRoleLabel(staffSessions[0]?.role) || 'Staff';
+
+  const logoHomePath = useMemo(
+    () => getLogoHomePath(activeSessions),
+    [activeSessions],
+  );
 
   useEffect(() => {
     setMenuOpen(false);
@@ -208,31 +162,6 @@ export default function AppNavbar() {
     };
   }, []);
 
-  useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, [menuOpen]);
-
-  useEffect(() => {
-    console.log('[AppNavbar Debug] Mobile Menu State:', {
-      menuOpen,
-      isStaffRoute,
-      staffOnlyHeader,
-      zindexBackdrop: 99998,
-      zindexMenu: 99999,
-      bodyScrollLocked: document.body.style.overflow === 'hidden'
-    });
-  }, [menuOpen, isStaffRoute, staffOnlyHeader]);
-
   const closeMenu = () => setMenuOpen(false);
 
   const handleLogout = () => {
@@ -245,13 +174,15 @@ export default function AppNavbar() {
     <header className="app-header">
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <Link
-          to="/"
+          to={logoHomePath}
           className="group flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3"
           onClick={closeMenu}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 p-1.5 shadow-md shadow-brand-600/20 transition group-hover:shadow-lg">
-            <img src="/logo.png" alt="" className="h-full w-full" />
-          </span>
+          <img
+            src="/logo.png"
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-full object-cover"
+          />
           <span className="truncate font-display text-base font-bold text-brand-900 sm:text-lg">
             <span className="sm:hidden">{shortName}</span>
             <span className="hidden sm:inline">{fullName}</span>
@@ -260,7 +191,7 @@ export default function AppNavbar() {
 
         {showMainNav && (
           <nav className="hidden min-w-0 flex-1 items-center justify-end gap-2 md:flex" aria-label="Main navigation">
-            <div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-stone-100/90 p-1 ring-1 ring-stone-200/60 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full glass-nav-rail">
               {pillLinks.map((link) => (
                 <NavLinkItem key={link.id} link={link} itemCount={itemCount} />
               ))}
@@ -278,11 +209,7 @@ export default function AppNavbar() {
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('toggle-sidebar'));
               }}
-              className={`nav-icon-btn border bg-white ${
-                sidebarOpen
-                  ? 'border-brand-300 bg-brand-50 text-brand-700'
-                  : 'border-stone-200 text-stone-700 hover:border-brand-200 hover:bg-stone-50'
-              } md:hidden`}
+              className={`nav-icon-btn ${sidebarOpen ? 'border-brand-300/60 text-brand-700' : ''} md:hidden`}
               aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
             >
               {sidebarOpen ? (
@@ -316,11 +243,7 @@ export default function AppNavbar() {
               <button
                 type="button"
                 onClick={() => setMenuOpen((open) => !open)}
-                className={`nav-icon-btn border bg-white ${
-                  menuOpen
-                    ? 'border-brand-300 bg-brand-50 text-brand-700'
-                    : 'border-stone-200 text-stone-700 hover:border-brand-200 hover:bg-stone-50'
-                }`}
+                className={`nav-icon-btn ${menuOpen ? 'border-brand-300/60 text-brand-700' : ''}`}
                 aria-expanded={menuOpen}
                 aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               >
@@ -357,21 +280,31 @@ export default function AppNavbar() {
         </div>
       </div>
 
-      {menuOpen && !staffOnlyHeader && (
-        <ModalShell title="Navigation" onClose={closeMenu}>
-          <div className="flex flex-col gap-2 pt-2">
-            {mobileNavLinks.map((link) => (
-              <NavLinkItem
-                key={link.id}
-                link={link}
-                itemCount={itemCount}
-                onNavigate={closeMenu}
-                mobile
-              />
-            ))}
-          </div>
-        </ModalShell>
-      )}
+      <MobileSlideMenu
+        open={menuOpen && !staffOnlyHeader}
+        onClose={closeMenu}
+        footer={
+          identifiedUser ? (
+            <MobileSlideMenuProfileFooter
+              user={identifiedUser}
+              roleLabel={mobileProfileRoleLabel}
+              profilePath={profilePath}
+              onNavigate={closeMenu}
+              onLogout={handleLogout}
+            />
+          ) : null
+        }
+      >
+        {mobileNavLinks.map((link) => (
+          <NavLinkItem
+            key={link.id}
+            link={link}
+            itemCount={itemCount}
+            onNavigate={closeMenu}
+            mobile
+          />
+        ))}
+      </MobileSlideMenu>
     </header>
   );
 }

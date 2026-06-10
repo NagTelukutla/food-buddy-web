@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { orderApi } from '../../api/orderApi';
+import GlassSelect from '../../components/common/GlassSelect';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -141,10 +142,7 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
-      <AdminPageHeader
-        title="Order Management"
-        breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Orders' }]}
-      />
+      <AdminPageHeader title="Order Management" />
 
       <div className="card mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <input
@@ -154,16 +152,14 @@ export default function AdminOrdersPage() {
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           className="input-field"
         />
-        <select
+        <GlassSelect
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="input-field"
-        >
-          <option value="">All Statuses</option>
-          {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          options={[
+            { value: '', label: 'All Statuses' },
+            ...ORDER_STATUSES.map((s) => ({ value: s, label: s })),
+          ]}
+        />
         <p className="flex items-center text-sm text-stone-500 sm:col-span-2 lg:col-span-1">
           {total} order{total !== 1 ? 's' : ''} found
         </p>
@@ -211,14 +207,14 @@ export default function AdminOrdersPage() {
               page={page}
               totalPages={totalPages}
               onPageChange={setPage}
-              className="mt-auto shrink-0 border-t border-stone-200 bg-white px-1 pt-4 [&_button]:flex-1"
+              className="mt-auto shrink-0 border-t border-white/35 px-1 pt-4 [&_button]:flex-1"
             />
           </div>
 
-          <div className="hidden min-h-[32rem] flex-col overflow-hidden rounded-xl border bg-white lg:col-span-2 lg:flex">
+          <div className="glass-table-wrap hidden min-h-[32rem] flex-col overflow-hidden lg:col-span-2 lg:flex">
             <div className="flex-1 overflow-x-auto">
               <table className="w-full min-w-[700px] text-left text-sm">
-                <thead className="border-b bg-stone-50 text-xs uppercase text-stone-500">
+                <thead className="glass-table-head">
                   <tr>
                     <th className="px-4 py-3">Order ID</th>
                     <th className="px-4 py-3">Customer</th>
@@ -232,7 +228,7 @@ export default function AdminOrdersPage() {
                   {orders.map((order) => (
                     <tr
                       key={order.id}
-                      className={`cursor-pointer hover:bg-stone-50 ${
+                      className={`glass-table-row-hover cursor-pointer ${
                         selected?.id === order.id ? 'bg-brand-50' : ''
                       }`}
                       onClick={() => setSelected(order)}
@@ -314,7 +310,7 @@ export default function AdminOrdersPage() {
                   </div>
                 </dl>
                 {selected.notes && (
-                  <p className="mb-4 rounded bg-stone-50 p-2 text-sm text-stone-600">
+                  <p className="glass-surface-soft mb-4 p-2 text-sm text-stone-600">
                     Note: {selected.notes}
                   </p>
                 )}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { orderApi } from '../api/orderApi';
 import { deliveryApi } from '../api/restaurantApi';
-import Breadcrumbs from '../components/common/Breadcrumbs';
 import ErrorState from '../components/common/ErrorState';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PageContainer from '../components/common/PageContainer';
@@ -66,7 +65,6 @@ export default function TrackOrderPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Track Order' }]} />
       <PageTitle>Track Order</PageTitle>
       <p className="-mt-2 mb-6 break-all font-mono text-sm text-stone-500">Order ID: {id}</p>
 
@@ -93,18 +91,22 @@ export default function TrackOrderPage() {
                   </p>
                 )}
               </div>
-              <div className="bg-white p-3">
+              <div className="glass-surface-soft p-3">
                 <LiveDeliveryMap
                   restaurant={liveTrack.restaurant}
                   destination={liveTrack.destination}
                   driver={liveTrack.driver}
                   deliveryStatus={liveTrack.delivery_status}
+                  deliveryAddress={liveTrack.delivery_address}
                   followDriver={!!liveTrack.driver}
+                  statusLabel={
+                    DELIVERY_STATUS_LABELS[liveTrack.delivery_status] || 'Order is on the way'
+                  }
                   framed
                 />
               </div>
               {liveTrack.delivery_address && (
-                <p className="border-t border-stone-100 px-4 py-2 text-xs text-stone-600">
+                <p className="border-t border-white/35 px-4 py-2 text-xs text-stone-600">
                   Delivering to: {liveTrack.delivery_address}
                 </p>
               )}

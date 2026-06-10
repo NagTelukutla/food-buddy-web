@@ -124,16 +124,16 @@ export default function PlatformUsersPage() {
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-2 border-b border-stone-200 pb-3">
+      <div className="mb-4 flex flex-wrap gap-2 border-b border-white/35 pb-3">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+            className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
               activeTab === tab.id
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50'
+                ? 'btn-primary'
+                : 'glass-pill text-stone-600'
             }`}
           >
             {tab.label}
@@ -156,9 +156,9 @@ export default function PlatformUsersPage() {
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white">
+        <div className="glass-table-wrap">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b bg-stone-50 text-xs uppercase text-stone-500">
+            <thead className="glass-table-head">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Mobile</th>
@@ -176,7 +176,7 @@ export default function PlatformUsersPage() {
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-stone-50">
+                  <tr key={u.id} className="glass-table-row-hover">
                     <td className="px-4 py-3">
                       <p className="font-medium">{u.full_name}</p>
                       <p className="text-xs text-stone-500">{u.username} · {u.email}</p>

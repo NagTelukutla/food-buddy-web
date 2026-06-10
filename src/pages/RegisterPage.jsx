@@ -36,8 +36,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-100 p-4">
-      <div className="card w-full max-w-md p-6">
+    <div className="glass-auth-shell">
+      <div className="glass-surface-strong w-full max-w-md p-6 sm:p-8">
         <h1 className="mb-6 text-2xl font-bold">Create Account</h1>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <input className="input-field" placeholder="Full name" {...register('full_name', { required: true })} />

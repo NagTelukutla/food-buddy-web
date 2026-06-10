@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { paymentApi } from '../api/paymentApi';
-import Breadcrumbs from '../components/common/Breadcrumbs';
+import GlassSelect from '../components/common/GlassSelect';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PageContainer from '../components/common/PageContainer';
 import PageTitle from '../components/common/PageTitle';
@@ -135,13 +135,6 @@ export default function CheckoutPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs
-        items={[
-          { label: 'Home', to: '/' },
-          { label: 'Cart', to: '/cart' },
-          { label: 'Checkout' },
-        ]}
-      />
       <PageTitle>Checkout</PageTitle>
 
       {customerSignedIn && !orderingAllowed && (
@@ -206,11 +199,11 @@ export default function CheckoutPage() {
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">Order Type *</label>
-            <select className="input-field" {...register('order_type', { required: true })}>
-              {ORDER_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <GlassSelect
+              value={orderType}
+              options={ORDER_TYPES.map((t) => ({ value: t, label: t }))}
+              {...register('order_type', { required: true })}
+            />
           </div>
           {orderType === 'Delivery' && (
             <div>

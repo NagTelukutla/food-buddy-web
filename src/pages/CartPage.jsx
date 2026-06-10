@@ -1,5 +1,4 @@
 import { Link, Navigate } from 'react-router-dom';
-import Breadcrumbs from '../components/common/Breadcrumbs';
 import EmptyState from '../components/common/EmptyState';
 import PageContainer from '../components/common/PageContainer';
 import PageTitle from '../components/common/PageTitle';
@@ -29,7 +28,6 @@ export default function CartPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Cart' }]} />
       <PageTitle>Your Cart</PageTitle>
 
       {loginRequired && (

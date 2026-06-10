@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { platformApi } from '../../api/restaurantApi';
 import { Link } from 'react-router-dom';
+import StatCard from '../../components/admin/StatCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { formatCurrency } from '../../utils/format';
 
 export default function PlatformDashboardPage() {
   const [stats, setStats] = useState(null);
@@ -18,10 +18,10 @@ export default function PlatformDashboardPage() {
       {loading ? <LoadingSpinner /> : (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="card p-4"><p className="text-sm text-stone-500">Active restaurants</p><p className="text-2xl font-bold">{stats.active_restaurants}</p></div>
-            <div className="card p-4"><p className="text-sm text-stone-500">Total orders</p><p className="text-2xl font-bold">{stats.total_orders}</p></div>
-            <div className="card p-4"><p className="text-sm text-stone-500">GMV</p><p className="text-2xl font-bold">{formatCurrency(stats.total_gmv)}</p></div>
-            <div className="card p-4"><p className="text-sm text-stone-500">Customers</p><p className="text-2xl font-bold">{stats.total_customers}</p></div>
+            <StatCard title="Active restaurants" value={stats.active_restaurants} icon="restaurants" />
+            <StatCard title="Total orders" value={stats.total_orders} icon="orders" />
+            <StatCard title="GMV" value={stats.total_gmv} isCurrency icon="gmv" />
+            <StatCard title="Customers" value={stats.total_customers} icon="customers" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Link to="/platform/restaurants" className="card p-4 hover:border-brand-300">

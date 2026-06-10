@@ -74,21 +74,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-dark-900 to-brand-800 p-4">
-      <div className="card w-full max-w-md p-6">
+    <div className="glass-auth-shell">
+      <div className="glass-surface-strong w-full max-w-md p-6 sm:p-8">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">Sign In</h1>
         </div>
         {redirectMessage && (
-          <p className="mb-4 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-center text-sm text-brand-900">
+          <p className="glass-notice mb-4 text-center text-brand-900">
             {redirectMessage}
           </p>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">Username or email</label>
             <input
               className="input-field"
+              placeholder="Username or email"
               autoComplete="username"
               {...register('username', { required: 'Username is required' })}
             />
@@ -97,10 +97,10 @@ export default function LoginPage() {
             )}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Password</label>
             <input
               type="password"
               className="input-field"
+              placeholder="Password"
               autoComplete="current-password"
               {...register('password', { required: 'Password is required', minLength: 6 })}
             />
@@ -116,7 +116,7 @@ export default function LoginPage() {
           No account? <Link to="/register" className="text-brand-600 hover:underline">Register</Link>
         </p>
         {activeSessions.length > 0 && (
-          <div className="mt-4 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
+          <div className="glass-surface-soft mt-4 p-3 text-xs text-stone-600">
             <p className="mb-2 font-medium text-stone-700">Active sessions (other roles stay signed in)</p>
             <ul className="space-y-1">
               {activeSessions.map((s) => (

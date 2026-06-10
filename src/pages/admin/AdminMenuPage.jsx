@@ -118,7 +118,6 @@ export default function AdminMenuPage() {
     <div>
       <AdminPageHeader
         title="Menu Management"
-        breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Menu' }]}
         action={
           <button
             type="button"
@@ -173,9 +172,9 @@ export default function AdminMenuPage() {
               </div>
             ))}
           </div>
-          <div className="hidden overflow-x-auto rounded-xl border border-stone-200 bg-white md:block">
+          <div className="hidden overflow-x-auto glass-table-wrap md:block">
             <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b bg-stone-50 text-xs uppercase text-stone-500">
+              <thead className="glass-table-head">
                 <tr>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Category</th>
@@ -186,7 +185,7 @@ export default function AdminMenuPage() {
               </thead>
               <tbody className="divide-y">
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-stone-50">
+                  <tr key={item.id} className="glass-table-row-hover">
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3">{item.category}</td>
                     <td className="px-4 py-3">{formatCurrency(item.price)}</td>

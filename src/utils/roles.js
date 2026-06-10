@@ -30,6 +30,19 @@ export function getDashboardPath(role) {
   }
 }
 
+export function getLogoHomePath(activeSessions = []) {
+  const staff = getStaffSessions(activeSessions);
+  const hasDriver = staff.some(
+    (s) => s.bucket === 'delivery' || normalizeRole(s.role) === ROLES.DRIVER,
+  );
+
+  if (hasDriver && !getCustomerSession(activeSessions)) {
+    return getDashboardPath(ROLES.DRIVER);
+  }
+
+  return '/';
+}
+
 export function getStaffProfilePath(role) {
   const r = normalizeRole(role);
   switch (r) {

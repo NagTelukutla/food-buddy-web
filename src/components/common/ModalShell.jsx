@@ -1,25 +1,32 @@
-export default function ModalShell({ title, children, onClose }) {
-  return (
+import { useRef } from 'react';
+import { createPortal } from 'react-dom';
+import useModalScrollLock from '../../hooks/useModalScrollLock';
+
+export default function ModalShell({ title, children, onClose, compact = false }) {
+  const scrollRef = useRef(null);
+  useModalScrollLock(true, scrollRef);
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      className="glass-modal-backdrop animate-fade-in-backdrop"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="card max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-b-none sm:rounded-xl"
+        className={`glass-modal-panel ${compact ? '!p-3 sm:!p-4' : 'p-4 sm:p-5'}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className={`flex shrink-0 items-start justify-between gap-3 ${compact ? 'mb-2' : 'mb-4'}`}>
           <h2 id="modal-title" className="text-lg font-bold text-stone-900">
             {title}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600"
+            className="glass-icon-btn h-9 w-9 text-stone-500"
             aria-label="Close"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -27,8 +34,11 @@ export default function ModalShell({ title, children, onClose }) {
             </svg>
           </button>
         </div>
-        {children}
+        <div ref={scrollRef} className="modal-scroll-area">
+          {children}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

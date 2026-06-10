@@ -4,9 +4,9 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
   const lineTotal = item.price * item.quantity;
 
   return (
-    <article className="border-b border-stone-100 py-4 last:border-0 sm:py-5">
+    <article className="border-b border-white/35 py-4 last:border-0 sm:py-5">
       <div className="flex gap-3 sm:gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-xl sm:h-14 sm:w-14 sm:text-2xl">
+        <div className="glass-menu-thumb mb-0 flex h-12 w-12 shrink-0 text-xl sm:h-14 sm:w-14 sm:text-2xl">
           🍽️
         </div>
         <div className="min-w-0 flex-1">
@@ -23,7 +23,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
           <button
             type="button"
             onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-stone-300 text-lg hover:bg-stone-50 active:bg-stone-100"
+            className="glass-quantity-btn"
             aria-label="Decrease quantity"
           >
             −
@@ -32,7 +32,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
           <button
             type="button"
             onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-stone-300 text-lg hover:bg-stone-50 active:bg-stone-100"
+            className="glass-quantity-btn"
             aria-label="Increase quantity"
           >
             +
@@ -46,7 +46,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }) {
           <button
             type="button"
             onClick={() => onRemove(item.id)}
-            className="min-h-[2.25rem] rounded-lg px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100"
+            className="min-h-[2.25rem] rounded-xl px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-500/10 active:bg-red-500/15"
           >
             Remove
           </button>

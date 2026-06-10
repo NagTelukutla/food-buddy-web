@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { customerApi } from '../../api/restaurantApi';
+import StatCard from '../../components/admin/StatCard';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PageContainer from '../../components/common/PageContainer';
@@ -99,7 +100,7 @@ export default function CustomerDashboardPage() {
   return (
     <PageContainer>
     <div className="space-y-8">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-600 via-brand-700 to-dark-900 p-6 text-white shadow-lg sm:p-8">
+      <section className="glass-hero-banner">
         <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -bottom-10 left-1/3 h-32 w-32 rounded-full bg-brand-400/20 blur-2xl" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
@@ -117,7 +118,7 @@ export default function CustomerDashboardPage() {
           </div>
           <Link
             to="/menu"
-            className="inline-flex shrink-0 items-center justify-center rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 shadow-md transition hover:bg-brand-50"
+            className="btn-hero-primary shrink-0 px-5 py-2.5 text-sm"
           >
             Order Now
           </Link>
@@ -125,27 +126,36 @@ export default function CustomerDashboardPage() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <div className="card border-brand-100 bg-gradient-to-br from-brand-50 to-white p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Loyalty Points</p>
-          <p className="mt-1 text-3xl font-bold text-brand-700">{profile.loyalty_points_balance}</p>
-          <Link to="/customer/loyalty" className="mt-2 inline-block text-xs font-medium text-brand-600 hover:underline">
-            View rewards →
-          </Link>
-        </div>
-        <div className="card border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Orders on {formatPhoneDisplay(profile.phone)}</p>
-          <p className="mt-1 text-3xl font-bold text-indigo-700">{orders.length}</p>
-          <Link to="/customer/orders" className="mt-2 inline-block text-xs font-medium text-indigo-600 hover:underline">
-            View history →
-          </Link>
-        </div>
-        <div className="card border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-stone-500">Saved Addresses</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-700">{profile.addresses?.length || 0}</p>
-          <Link to="/customer/profile" className="mt-2 inline-block text-xs font-medium text-emerald-600 hover:underline">
-            Manage profile →
-          </Link>
-        </div>
+        <StatCard
+          title="Loyalty Points"
+          value={profile.loyalty_points_balance}
+          icon="loyalty"
+          action={
+            <Link to="/customer/loyalty" className="inline-block text-xs font-medium text-brand-600 hover:underline">
+              View rewards →
+            </Link>
+          }
+        />
+        <StatCard
+          title={`Orders on ${formatPhoneDisplay(profile.phone)}`}
+          value={orders.length}
+          icon="orders"
+          action={
+            <Link to="/customer/orders" className="inline-block text-xs font-medium text-indigo-600 hover:underline">
+              View history →
+            </Link>
+          }
+        />
+        <StatCard
+          title="Saved Addresses"
+          value={profile.addresses?.length || 0}
+          icon="addresses"
+          action={
+            <Link to="/customer/profile" className="inline-block text-xs font-medium text-emerald-600 hover:underline">
+              Manage profile →
+            </Link>
+          }
+        />
       </section>
 
       <section>

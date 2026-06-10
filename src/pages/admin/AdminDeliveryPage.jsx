@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react';
+import GlassSelect from '../../components/common/GlassSelect';
 import { deliveryApi } from '../../api/restaurantApi';
 import { AdminPageHeader } from '../../layouts/AdminLayout';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useRestaurantId } from '../../hooks/useRestaurantId';
+
+const VEHICLE_OPTIONS = [
+  { value: 'bike', label: 'Bike' },
+  { value: 'scooter', label: 'Scooter' },
+  { value: 'car', label: 'Car' },
+];
 
 export default function AdminDeliveryPage() {
   const restaurantId = useRestaurantId();
@@ -32,11 +39,11 @@ export default function AdminDeliveryPage() {
       <form onSubmit={handleCreate} className="card mb-6 grid gap-3 p-4 sm:grid-cols-4">
         <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="input-field" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-        <select className="input-field" value={form.vehicle_type} onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}>
-          <option value="bike">Bike</option>
-          <option value="scooter">Scooter</option>
-          <option value="car">Car</option>
-        </select>
+        <GlassSelect
+          value={form.vehicle_type}
+          onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
+          options={VEHICLE_OPTIONS}
+        />
         <button type="submit" className="btn-primary">Add Partner</button>
       </form>
       {loading ? (

@@ -4,23 +4,48 @@ import { useCart } from '../../context/CartContext';
 import { canShowMenuAddButton } from '../../utils/roles';
 import { formatCurrency } from '../../utils/format';
 
+function PlusIcon({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
+function MinusIcon({ className = 'h-4 w-4' }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
+    </svg>
+  );
+}
+
 export default function MenuCard({ item }) {
-  const { addItem } = useCart();
+  const { items, addItem, updateQuantity } = useCart();
   const { activeSessions, loading: authLoading } = useAuth();
   const showAdd = canShowMenuAddButton(activeSessions);
+  const quantity = items.find((cartItem) => cartItem.id === item.id)?.quantity ?? 0;
 
-  const handleAdd = () => {
+  const handleIncrease = () => {
     if (!item.available) {
       toast.error('This item is currently unavailable');
       return;
     }
-    addItem(item);
-    toast.success(`${item.name} added to cart`);
+    if (quantity === 0) {
+      addItem(item);
+      toast.success(`${item.name} added to cart`);
+      return;
+    }
+    updateQuantity(item.id, quantity + 1);
+  };
+
+  const handleDecrease = () => {
+    updateQuantity(item.id, quantity - 1);
   };
 
   return (
-    <article className="card flex flex-col transition hover:shadow-md">
-      <div className="mb-3 flex h-36 items-center justify-center rounded-lg bg-gradient-to-br from-brand-100 to-brand-200 text-4xl">
+    <article className="card flex flex-col transition hover:shadow-lg">
+      <div className="glass-menu-thumb">
         {item.category === 'Biryani' ? '🍛' : item.category === 'Desserts' ? '🍰' : '🍽️'}
       </div>
       <div className="mb-1 flex items-start justify-between gap-2">
@@ -30,19 +55,43 @@ export default function MenuCard({ item }) {
         )}
       </div>
       <p className="mb-2 flex-1 text-sm text-stone-600 line-clamp-2">{item.description}</p>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-lg font-bold text-brand-700">{formatCurrency(item.price)}</span>
         {authLoading && !showAdd ? (
-          <span className="inline-block h-8 w-14 animate-pulse rounded-lg bg-stone-100" aria-hidden />
+          <span className="inline-block h-8 w-20 animate-pulse rounded-xl bg-white/50" aria-hidden />
         ) : showAdd ? (
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!item.available}
-            className="btn-primary text-xs"
-          >
-            Add
-          </button>
+          quantity > 0 ? (
+            <div className="menu-qty-control" aria-label={`${item.name} quantity`}>
+              <button
+                type="button"
+                onClick={handleDecrease}
+                className="menu-qty-btn"
+                aria-label={`Decrease ${item.name} quantity`}
+              >
+                <MinusIcon />
+              </button>
+              <span className="menu-qty-count">{quantity}</span>
+              <button
+                type="button"
+                onClick={handleIncrease}
+                disabled={!item.available}
+                className="menu-qty-btn"
+                aria-label={`Increase ${item.name} quantity`}
+              >
+                <PlusIcon />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleIncrease}
+              disabled={!item.available}
+              className="menu-add-btn"
+            >
+              <PlusIcon />
+              Add
+            </button>
+          )
         ) : (
           <span className="text-xs text-stone-400">View only</span>
         )}

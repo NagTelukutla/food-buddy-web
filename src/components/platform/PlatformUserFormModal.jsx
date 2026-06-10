@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import GlassSelect from '../common/GlassSelect';
 import ModalShell from '../common/ModalShell';
 import Toggle from '../common/Toggle';
 import { ROLES, normalizeRole } from '../../utils/roles';
@@ -24,6 +25,7 @@ export default function PlatformUserFormModal({
   });
 
   const selectedRole = normalizeRole(watch('role'));
+  const selectedRestaurantId = watch('restaurant_id');
 
   useEffect(() => {
     if (!open) return;
@@ -58,17 +60,12 @@ export default function PlatformUserFormModal({
             <label htmlFor="staff-user-type" className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
               User type *
             </label>
-            <select
+            <GlassSelect
               id="staff-user-type"
-              className="input-field"
+              value={selectedRole}
+              options={STAFF_TYPE_OPTIONS}
               {...register('role', { required: true })}
-            >
-              {STAFF_TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
         {!showStaffTypeSelector && <input type="hidden" {...register('role')} value={ROLES.CUSTOMER} />}
@@ -120,16 +117,16 @@ export default function PlatformUserFormModal({
             <label htmlFor="driver-restaurant" className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
               Restaurant *
             </label>
-            <select
+            <GlassSelect
               id="driver-restaurant"
-              className="input-field"
+              value={selectedRestaurantId ?? ''}
+              placeholder="Select restaurant"
+              options={[
+                { value: '', label: 'Select restaurant' },
+                ...restaurants.map((r) => ({ value: r.id, label: r.name })),
+              ]}
               {...register('restaurant_id', { required: selectedRole === ROLES.DRIVER })}
-            >
-              <option value="">Select restaurant</option>
-              {restaurants.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
+            />
           </div>
         )}
         {editing && (

@@ -51,17 +51,14 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <AdminPageHeader
-        title="Dashboard"
-        breadcrumbs={[{ label: 'Admin', to: '/admin/dashboard' }, { label: 'Dashboard' }]}
-      />
+      <AdminPageHeader title="Dashboard" />
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <StatCard title="Today's Orders" value={stats.today_orders} icon="📋" />
-        <StatCard title="Today's Revenue" value={stats.today_revenue} isCurrency icon="💰" />
-        <StatCard title="Pending" value={stats.pending_orders} icon="⏳" />
-        <StatCard title="Completed" value={stats.completed_orders} icon="✅" />
-        <StatCard title="Avg Order Value" value={stats.average_order_value} isCurrency icon="📈" />
+        <StatCard title="Today's Orders" value={stats.today_orders} icon="orders" />
+        <StatCard title="Today's Revenue" value={stats.today_revenue} isCurrency icon="revenue" />
+        <StatCard title="Pending" value={stats.pending_orders} icon="pending" />
+        <StatCard title="Completed" value={stats.completed_orders} icon="completed" />
+        <StatCard title="Avg Order Value" value={stats.average_order_value} isCurrency icon="average" />
       </div>
 
       <div className="mb-8 grid gap-6 lg:grid-cols-2">

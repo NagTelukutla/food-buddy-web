@@ -27,7 +27,7 @@ export default function AdminBranchesPage() {
 
   return (
     <div>
-      <AdminPageHeader title="Branches" breadcrumbs={[{ label: 'Admin', to: '/admin' }, { label: 'Branches' }]} />
+      <AdminPageHeader title="Branches" />
       <form onSubmit={handleCreate} className="card mb-6 grid gap-3 p-4 sm:grid-cols-4">
         <input className="input-field" placeholder="Branch name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="input-field sm:col-span-2" placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} required />

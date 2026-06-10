@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import MobileSlideMenu from '../components/layout/MobileSlideMenu';
+import MobileSlideMenuProfileFooter from '../components/layout/MobileSlideMenuProfileFooter';
+import { getMobileNavLinkClass } from '../utils/mobileNavStyles';
+import { PLATFORM_NAV_ITEMS } from '../utils/navLinks';
 
-const navItems = [
-  { to: '/platform/dashboard', label: 'Dashboard', icon: '📊' },
-  { to: '/platform/restaurants', label: 'Restaurants', icon: '🏪' },
-  { to: '/platform/users', label: 'Users', icon: '👥' },
-  { to: '/platform/rbac', label: 'RBAC', icon: '🔐' },
-];
+const navItems = PLATFORM_NAV_ITEMS;
 
 export default function PlatformLayout() {
   const { user, logout } = useAuth();
@@ -30,29 +29,15 @@ export default function PlatformLayout() {
     return () => window.removeEventListener('toggle-sidebar', handleToggle);
   }, []);
 
-  useEffect(() => {
-    if (menuOpen) {
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, [menuOpen]);
-
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
   return (
-    <div className="min-h-screen bg-stone-100">
-      <aside className="app-sidebar fixed bottom-0 left-0 z-40 hidden w-64 flex-col border-r border-stone-200 bg-dark-900 text-stone-200 md:flex">
-        <div className="shrink-0 border-b border-stone-700 px-6 py-5">
+    <div className="min-h-screen">
+      <aside className="glass-sidebar text-stone-200">
+        <div className="shrink-0 border-b border-white/10 px-6 py-5">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo.png" alt="" className="h-8 w-8" />
             <span className="font-display text-lg text-white">Super Admin</span>
@@ -64,11 +49,7 @@ export default function PlatformLayout() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-brand-600 text-white'
-                    : 'text-stone-300 hover:bg-dark-800 hover:text-white'
-                }`
+                `glass-sidebar-link ${isActive ? 'glass-sidebar-link-active' : ''}`
               }
             >
               <span>{item.icon}</span>
@@ -76,7 +57,7 @@ export default function PlatformLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="shrink-0 border-t border-stone-700 p-4 space-y-2.5">
+        <div className="shrink-0 border-t border-white/10 p-4 space-y-2.5">
           <div className="flex items-center gap-3 px-1 py-0.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
               {user?.full_name ? user.full_name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() : '?'}
@@ -105,67 +86,35 @@ export default function PlatformLayout() {
       </aside>
 
       <div className="flex min-h-screen min-w-0 flex-col md:ml-64">
-        {menuOpen && (
-          <>
-            <button
-              type="button"
-              className="fixed inset-0 z-40 animate-fade-in-backdrop md:hidden"
-              onClick={closeSidebar}
-              aria-label="Close menu"
+        <MobileSlideMenu
+          open={menuOpen}
+          onClose={closeSidebar}
+          footer={
+            <MobileSlideMenuProfileFooter
+              user={user}
+              roleLabel="Super Admin"
+              profilePath="/platform/profile"
+              onNavigate={closeSidebar}
+              onLogout={() => {
+                closeSidebar();
+                handleLogout();
+              }}
             />
-            <nav className="fixed top-[4.75rem] right-3 bottom-3 z-50 flex w-[min(85%,280px)] flex-col bg-white/25 backdrop-blur-[24px] border border-white/40 rounded-[1.75rem] shadow-[0_12px_40px_rgba(0,0,0,0.12)] overflow-hidden animate-slide-in-right md:hidden">
-              <div className="flex-1 space-y-1 overflow-y-auto p-3 pt-5">
-                {navItems.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={closeSidebar}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-all duration-200 ${
-                        isActive
-                          ? 'bg-brand-600 text-white shadow-md shadow-brand-600/10'
-                          : 'text-stone-800 hover:bg-white/30 active:bg-white/50'
-                      }`
-                    }
-                  >
-                    <span>{item.icon}</span>
-                    {item.label}
-                  </NavLink>
-                ))}
-              </div>
-              <div className="shrink-0 border-t border-white/10 p-4 space-y-2.5 bg-white/10 backdrop-blur-md">
-                <div className="flex items-center gap-3 px-1 py-0.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-bold text-white">
-                    {user?.full_name ? user.full_name.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase() : '?'}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-stone-800">{user?.full_name}</p>
-                    <p className="truncate text-[11px] text-stone-500">Super Admin</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Link
-                    to="/platform/profile"
-                    onClick={closeSidebar}
-                    className="btn-secondary bg-white/40 border-white/20 hover:bg-white/60 flex-1 py-1.5 text-center text-xs"
-                  >
-                    Profile
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeSidebar();
-                      handleLogout();
-                    }}
-                    className="btn-primary flex-1 py-1.5 text-xs"
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </nav>
-          </>
-        )}
+          }
+        >
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={closeSidebar}
+              className={({ isActive }) => getMobileNavLinkClass(isActive)}
+            >
+              <span>{item.icon}</span>
+              {item.label}
+            </NavLink>
+          ))}
+        </MobileSlideMenu>
+
          <div className={`flex-1 overflow-x-hidden p-4 sm:p-6 md:p-8 ${menuOpen ? 'overflow-y-hidden' : 'overflow-y-auto'}`}>
           <Outlet />
         </div>

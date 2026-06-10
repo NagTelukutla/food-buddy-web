@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 
 const DEFAULT_SLIDES = [
   {
@@ -86,11 +85,6 @@ export default function HeroSlider({ settings }) {
       <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 md:py-14">
         <div className="grid items-center gap-5 md:grid-cols-2 md:gap-8">
           <div className="max-w-xl">
-            <img
-              src="/logo.png"
-              alt=""
-              className="mb-3 h-11 w-11 sm:h-12 sm:w-12"
-            />
             <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-brand-200 sm:text-sm">
               {settings?.tagline}
             </p>
@@ -106,21 +100,6 @@ export default function HeroSlider({ settings }) {
             >
               {current.subtitle}
             </p>
-
-            <div className="mt-5 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-              <Link
-                to={current.cta_link || '/menu'}
-                className="btn-hero-primary w-full px-6 py-2.5 text-sm sm:w-auto sm:text-base"
-              >
-                {current.cta_label || 'Order Now'}
-              </Link>
-              <Link
-                to="/menu"
-                className="btn-hero-outline w-full px-6 py-2.5 text-sm sm:w-auto sm:text-base"
-              >
-                View Menu
-              </Link>
-            </div>
           </div>
 
           <div className="relative mx-auto w-full max-w-md md:max-w-none">

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import Breadcrumbs from '../components/common/Breadcrumbs';
 import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import PageContainer from '../components/common/PageContainer';
@@ -17,7 +16,6 @@ export default function MenuPage() {
 
   return (
     <PageContainer>
-      <Breadcrumbs items={[{ label: 'Home', to: '/' }, { label: 'Menu' }]} />
       <PageTitle>Our Menu</PageTitle>
 
       <MenuFilters

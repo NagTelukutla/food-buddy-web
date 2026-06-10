@@ -6,7 +6,7 @@ export default function RoundedCheckbox({ checked, onChange, label, description,
       htmlFor={inputId}
       className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
         disabled ? 'cursor-not-allowed opacity-50' : 'hover:border-brand-200 hover:bg-brand-50/40'
-      } ${checked ? 'border-brand-300 bg-brand-50/60' : 'border-stone-200 bg-white'}`}
+      } ${checked ? 'border-brand-300/60 bg-brand-50/50' : 'border-white/55 bg-white/45'}`}
     >
       <span className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
         <input
@@ -21,7 +21,7 @@ export default function RoundedCheckbox({ checked, onChange, label, description,
           className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition ${
             checked
               ? 'border-brand-600 bg-brand-600 text-white'
-              : 'border-stone-300 bg-white peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400'
+              : 'border-white/60 bg-white/50 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-400'
           }`}
           aria-hidden
         >

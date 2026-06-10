@@ -13,7 +13,7 @@ export default function OrderTracker({ status, orderType = 'Delivery' }) {
         <StatusBadge status={normalized} />
       </div>
       <div className="relative">
-        <div className="absolute left-4 top-0 h-full w-0.5 bg-stone-200" />
+        <div className="absolute left-4 top-0 h-full w-0.5 bg-white/40" />
         <ul className="space-y-6">
           {steps.map((step, index) => {
             const isComplete = currentIndex >= index && currentIndex !== -1;
@@ -24,7 +24,7 @@ export default function OrderTracker({ status, orderType = 'Delivery' }) {
                   className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs ${
                     isComplete
                       ? 'bg-brand-600 text-white'
-                      : 'border-2 border-stone-300 bg-white'
+                      : 'border-2 border-white/60 bg-white/50 backdrop-blur-sm'
                   }`}
                 >
                   {isComplete ? '✓' : index + 1}
@@ -42,7 +42,7 @@ export default function OrderTracker({ status, orderType = 'Delivery' }) {
         </ul>
       </div>
       {status === 'Cancelled' && (
-        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <p className="glass-surface-soft rounded-2xl p-3 text-sm text-red-700">
           This order has been cancelled.
         </p>
       )}
