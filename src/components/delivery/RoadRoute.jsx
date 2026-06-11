@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Polyline } from 'react-leaflet';
 import { fetchDrivingRouteWithDetails, hasMapPoint } from '../../utils/mapRouting';
 import { isOffRoute } from '../../utils/mapNavigation';
 
-export default function RoadRoute({
+export function useRoadRoute({
   from,
   to,
-  pathOptions,
   enabled = true,
   includeSteps = false,
   onRouteUpdate,
@@ -71,7 +69,7 @@ export default function RoadRoute({
     includeSteps,
   ]);
 
-  if (route.positions.length < 2) return null;
-
-  return <Polyline positions={route.positions} pathOptions={pathOptions} />;
+  return route;
 }
+
+export default useRoadRoute;

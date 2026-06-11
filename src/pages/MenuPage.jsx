@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import PageContainer from '../components/common/PageContainer';
@@ -9,10 +10,16 @@ import MenuFilters from '../components/menu/MenuFilters';
 import { useMenu } from '../hooks/useMenu';
 
 export default function MenuPage() {
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [category, setCategory] = useState('');
   const [availableOnly, setAvailableOnly] = useState(false);
   const { items, loading, error, refetch } = useMenu({ search, category, availableOnly });
+
+  useEffect(() => {
+    const query = searchParams.get('q') || '';
+    setSearch(query);
+  }, [searchParams]);
 
   return (
     <PageContainer>

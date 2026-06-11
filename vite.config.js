@@ -10,6 +10,21 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'node',
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            if (id.includes('@googlemaps')) return 'googlemaps';
+            if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('/react/')) {
+              return 'react-vendor';
+            }
+            if (id.includes('axios')) return 'axios';
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       port: Number(env.VITE_DEV_PORT) || 5173,
       proxy: {

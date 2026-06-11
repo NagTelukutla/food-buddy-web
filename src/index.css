@@ -5,6 +5,7 @@
 @layer base {
   :root {
     --app-header-height: 4rem;
+    --app-bottom-nav-height: 4.25rem;
     --glass-blur: 28px;
     --glass-border: rgba(255, 255, 255, 0.62);
     --glass-highlight: rgba(255, 255, 255, 0.82);
@@ -147,8 +148,10 @@
   }
 
   .app-header {
-    @apply fixed inset-x-0 top-0 z-50 border-b backdrop-blur-[28px]
-      max-md:inset-x-2.5 max-md:rounded-xl max-md:border max-md:border-b;
+    @apply fixed top-0 z-50 border-b backdrop-blur-[28px] max-md:rounded-xl max-md:border max-md:border-b;
+    left: 50%;
+    width: 99%;
+    transform: translateX(-50%);
     border-color: rgba(255, 255, 255, 0.55);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.52) 100%);
     box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
@@ -158,28 +161,115 @@
     padding-top: var(--app-header-height);
   }
 
-  .app-mobile-nav {
-    top: var(--app-header-height);
-    height: calc(100vh - var(--app-header-height));
+  .app-bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-50 flex items-stretch justify-around border-t backdrop-blur-[28px] md:hidden;
+    height: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-color: rgba(255, 255, 255, 0.55);
+    background: linear-gradient(0deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.58) 100%);
+    box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   }
 
-  .app-mobile-slide-backdrop {
-    @apply fixed inset-0 z-40 animate-fade-in-backdrop md:hidden;
+  .app-bottom-nav-offset {
+    padding-bottom: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom, 0px));
   }
 
-  .app-mobile-slide-menu {
-    @apply fixed top-[4.75rem] right-3 bottom-3 z-50 flex w-[min(85%,280px)] touch-none flex-col overscroll-none overflow-hidden rounded-[1.75rem] animate-slide-in-right md:hidden;
-    border: 1px solid rgba(255, 255, 255, 0.58);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.28) 100%);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  @media (min-width: 768px) {
+    .app-bottom-nav-offset {
+      padding-bottom: 0;
+    }
   }
 
-  .app-mobile-slide-footer {
-    @apply shrink-0 space-y-1.5 border-t px-3 py-2 backdrop-blur-xl;
-    border-color: rgba(255, 255, 255, 0.35);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.12) 100%);
+  .bottom-nav-item {
+    @apply flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold transition-all duration-200 outline-none;
+  }
+
+  .bottom-nav-item-inactive {
+    @apply text-stone-500;
+  }
+
+  .bottom-nav-item-active {
+    @apply text-brand-600;
+  }
+
+  .bottom-nav-item-active span:first-child {
+    @apply rounded-2xl bg-brand-50 text-brand-600;
+    box-shadow: inset 0 0 0 1px rgba(249, 115, 22, 0.2);
+  }
+
+  .header-search-overlay {
+    @apply absolute inset-0 z-[60] flex items-center px-4 backdrop-blur-[28px] sm:px-6;
+    border-color: rgba(255, 255, 255, 0.55);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.82) 100%);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    animation: glass-rise 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .header-search-overlay input[type='search']::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .header-search-results {
+    @apply absolute left-0 right-0 top-full z-[70] max-h-[min(50vh,360px)] overflow-y-auto border-b backdrop-blur-[28px];
+    border-color: rgba(255, 255, 255, 0.55);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.88) 100%);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .header-search-result-item {
+    @apply flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-brand-50/70 active:bg-brand-50;
+  }
+
+  .header-search-view-all {
+    @apply w-full border-t px-4 py-3 text-left text-sm font-semibold text-brand-700 transition hover:bg-brand-50/50;
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+
+  .header-location-trigger {
+    @apply flex min-w-0 max-w-full items-center gap-1.5 text-left transition active:opacity-80;
+  }
+
+  .header-location-trigger-icon {
+    @apply flex h-5 w-5 shrink-0 items-center justify-center text-brand-600 [&_svg]:h-3.5 [&_svg]:w-3.5;
+  }
+
+  .header-location-trigger-label {
+    @apply min-w-0 flex-1 truncate text-[11px] font-medium leading-tight text-stone-600;
+  }
+
+  .header-location-panel {
+    @apply fixed z-[70] rounded-[1.75rem] border backdrop-blur-[28px];
+    border-color: rgba(255, 255, 255, 0.62);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.78) 100%);
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .header-location-panel-inner {
+    animation: header-location-panel-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes header-location-panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .header-location-result-item {
+    @apply rounded-xl border border-white/45 bg-white/40 px-3 py-2.5 transition hover:border-brand-200/70 hover:bg-brand-50/60;
+  }
+
+  .location-mini-map {
+    @apply h-36 w-full;
+  }
+
+  .location-mini-map-canvas {
+    @apply h-full w-full rounded-2xl;
+    background: #f5f5f4;
   }
 
   .app-sidebar {
@@ -459,6 +549,117 @@
   .delivery-status-pill { @apply glass-status-pill; }
   .delivery-rise { @apply glass-rise; }
 
+  .order-tracker {
+    @apply m-0 list-none p-0;
+  }
+
+  .order-tracker__item {
+    @apply flex items-start gap-2.5;
+  }
+
+  .order-tracker__rail {
+    @apply flex w-6 shrink-0 flex-col items-center self-stretch;
+  }
+
+  .order-tracker__dot {
+    @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold leading-none;
+  }
+
+  .order-tracker__dot--current {
+    @apply bg-brand-600 text-white ring-2 ring-brand-100;
+    animation: order-tracker-dot-blink 1.5s ease-in-out infinite;
+  }
+
+  .order-tracker__dot--done {
+    @apply bg-brand-600 text-white;
+  }
+
+  .order-tracker__dot--pending {
+    @apply border border-stone-300 bg-white text-stone-400;
+  }
+
+  .order-tracker__line {
+    @apply w-0.5 flex-1 bg-stone-200;
+    min-height: 1.125rem;
+    margin-top: 0.125rem;
+    margin-bottom: 0.125rem;
+  }
+
+  .order-tracker__line--active {
+    @apply bg-brand-500;
+  }
+
+  .order-tracker__label {
+    @apply flex h-6 min-w-0 flex-1 items-center gap-2 self-start text-xs font-medium leading-none text-stone-400;
+  }
+
+  .order-tracker__title {
+    @apply leading-none;
+  }
+
+  .order-tracker__label--current {
+    @apply font-semibold text-brand-700;
+  }
+
+  .order-tracker__label--current .order-tracker__title {
+    animation: order-tracker-label-blink 1.5s ease-in-out infinite;
+  }
+
+  .order-tracker__label--done {
+    @apply text-stone-600;
+  }
+
+  .order-tracker__badge {
+    @apply inline-flex shrink-0 rounded-full bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700;
+    animation: order-tracker-badge-blink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes order-tracker-label-blink {
+    0%,
+    100% {
+      opacity: 1;
+      color: rgb(194 65 12);
+    }
+    50% {
+      opacity: 0.45;
+      color: rgb(234 88 12);
+    }
+  }
+
+  @keyframes order-tracker-badge-blink {
+    0%,
+    100% {
+      opacity: 1;
+      background-color: rgb(255 247 237);
+      color: rgb(194 65 12);
+    }
+    50% {
+      opacity: 0.7;
+      background-color: rgb(254 215 170);
+      color: rgb(234 88 12);
+    }
+  }
+
+  @keyframes order-tracker-dot-blink {
+    0%,
+    100% {
+      opacity: 1;
+      box-shadow: 0 0 0 0 rgba(234, 88, 12, 0.35);
+    }
+    50% {
+      opacity: 0.75;
+      box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.2);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .order-tracker__dot--current,
+    .order-tracker__label--current .order-tracker__title,
+    .order-tracker__badge {
+      animation: none;
+    }
+  }
+
   .delivery-map-frame {
     @apply relative overflow-hidden rounded-[1.25rem] bg-stone-100;
   }
@@ -581,15 +782,6 @@
     @apply pointer-events-auto absolute bottom-4 right-4 z-[500] border-stone-200/80 bg-white text-brand-700 shadow-lg;
   }
 
-  .delivery-map-pin-icon {
-    background: transparent !important;
-    border: none !important;
-  }
-
-  .delivery-map-pin-icon svg {
-    @apply drop-shadow-md;
-  }
-
   .glass-sidebar {
     @apply app-sidebar fixed bottom-0 left-0 z-40 hidden w-64 flex-col border-r backdrop-blur-[32px] md:flex;
     border-color: rgba(255, 255, 255, 0.12);
@@ -641,10 +833,25 @@
   }
 
   .glass-footer {
-    @apply border-t text-stone-300 backdrop-blur-[28px];
+    @apply relative border-t text-stone-300 backdrop-blur-[28px];
     border-color: rgba(255, 255, 255, 0.12);
     background: linear-gradient(180deg, rgba(26, 18, 9, 0.92) 0%, rgba(45, 31, 15, 0.88) 100%);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-order-card {
+    @apply relative overflow-hidden rounded-2xl border backdrop-blur-[28px];
+    border-color: rgba(255, 255, 255, 0.68);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.42) 55%,
+      rgba(255, 255, 255, 0.28) 100%
+    );
+    box-shadow:
+      0 10px 40px rgba(15, 23, 42, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.25);
   }
 
   .glass-auth-shell {

@@ -19,7 +19,7 @@ export function getDashboardPath(role) {
   const r = normalizeRole(role);
   switch (r) {
     case ROLES.CUSTOMER:
-      return '/customer/dashboard';
+      return '/customer/profile';
     case ROLES.DRIVER:
       return '/delivery/dashboard';
     case ROLES.PLATFORM:

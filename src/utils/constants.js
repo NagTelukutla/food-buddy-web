@@ -18,6 +18,9 @@ export const TAX_RATE = 0.05;
 
 export const CART_STORAGE_KEY = 'restaurant_cart';
 
+export const DELIVERY_LOCATION_STORAGE_KEY = 'food_buddy_delivery_location';
+export const RECENT_LOCATION_SEARCHES_KEY = 'food_buddy_recent_location_searches';
+
 export const STATUS_COLORS = {
   Pending: 'bg-yellow-100 text-yellow-800',
   Accepted: 'bg-blue-100 text-blue-800',

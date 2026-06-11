@@ -1,6 +1,20 @@
 import StatusBadge from '../common/StatusBadge';
 import { getTrackerSteps, normalizeOrderStatus } from '../../utils/orderWorkflow';
 
+function StepCheckIcon() {
+  return (
+    <svg className="h-2.5 w-2.5" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path
+        d="M2.5 6l2.5 2.5 4.5-5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function OrderTracker({ status, orderType = 'Delivery' }) {
   const normalized = normalizeOrderStatus(status);
   const steps = getTrackerSteps(orderType);
@@ -8,39 +22,47 @@ export default function OrderTracker({ status, orderType = 'Delivery' }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-sm text-stone-600">Current Status</span>
         <StatusBadge status={normalized} />
       </div>
-      <div className="relative">
-        <div className="absolute left-4 top-0 h-full w-0.5 bg-white/40" />
-        <ul className="space-y-6">
-          {steps.map((step, index) => {
-            const isComplete = currentIndex >= index && currentIndex !== -1;
-            const isCurrent = normalized === step;
-            return (
-              <li key={step} className="relative flex items-center gap-4 pl-10">
-                <span
-                  className={`absolute left-2 flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-                    isComplete
-                      ? 'bg-brand-600 text-white'
-                      : 'border-2 border-white/60 bg-white/50 backdrop-blur-sm'
-                  }`}
-                >
-                  {isComplete ? '✓' : index + 1}
+
+      <ol className="order-tracker">
+        {steps.map((step, index) => {
+          const isReached = currentIndex >= index && currentIndex !== -1;
+          const isCurrent = normalized === step;
+          const isLast = index === steps.length - 1;
+          const lineActive = currentIndex > index && currentIndex !== -1;
+
+          let dotClass = 'order-tracker__dot order-tracker__dot--pending';
+          if (isCurrent) dotClass = 'order-tracker__dot order-tracker__dot--current';
+          else if (isReached) dotClass = 'order-tracker__dot order-tracker__dot--done';
+
+          let labelClass = 'order-tracker__label';
+          if (isCurrent) labelClass += ' order-tracker__label--current';
+          else if (isReached) labelClass += ' order-tracker__label--done';
+
+          return (
+            <li key={step} className="order-tracker__item">
+              <div className="order-tracker__rail" aria-hidden="true">
+                <span className={dotClass}>
+                  {isReached ? <StepCheckIcon /> : <span>{index + 1}</span>}
                 </span>
-                <span
-                  className={`text-sm font-medium ${
-                    isCurrent ? 'text-brand-700' : isComplete ? 'text-stone-700' : 'text-stone-400'
-                  }`}
-                >
-                  {step}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+                {!isLast && (
+                  <span
+                    className={`order-tracker__line${lineActive ? ' order-tracker__line--active' : ''}`}
+                  />
+                )}
+              </div>
+              <div className={labelClass}>
+                <span className="order-tracker__title">{step}</span>
+                {isCurrent && <span className="order-tracker__badge">Current</span>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
       {status === 'Cancelled' && (
         <p className="glass-surface-soft rounded-2xl p-3 text-sm text-red-700">
           This order has been cancelled.

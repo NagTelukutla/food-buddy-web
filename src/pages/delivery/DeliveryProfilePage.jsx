@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { deliveryApi } from '../../api/restaurantApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PageContainer from '../../components/common/PageContainer';
+import ProfileLogoutButton from '../../components/layout/ProfileLogoutButton';
 import { useAuth } from '../../context/AuthContext';
 import { getRoleLabel } from '../../utils/roles';
 
@@ -95,6 +96,9 @@ export default function DeliveryProfilePage() {
                   <dd className="mt-1 font-medium text-brand-700">{getRoleLabel(role)}</dd>
                 </div>
               </dl>
+              <div className="mt-8 border-t border-stone-100 pt-6">
+                <ProfileLogoutButton />
+              </div>
             </div>
           </div>
 

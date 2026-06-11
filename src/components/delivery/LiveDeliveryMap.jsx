@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import L from 'leaflet';
-import { MapContainer, Marker, Tooltip, TileLayer, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import RoadRoute from './RoadRoute';
 import NavigationManeuverIcon from './NavigationManeuverIcon';
-import { destinationPinIcon, driverPinIcon, restaurantPinIcon } from './mapPinIcons';
+import { createPinIcon, MARKER_LABELS } from './mapPinIcons';
+import { useRoadRoute } from './RoadRoute';
 import useDriverVoiceNavigation from '../../hooks/useDriverVoiceNavigation';
+import { loadGoogleMaps, logGoogleMapsError } from '../../utils/googleMapsLoader';
 import {
   formatRouteDistance,
   formatRouteDuration,
@@ -16,172 +14,79 @@ import { getDeliveryRouteLegs, hasMapPoint } from '../../utils/mapRouting';
 
 const ROUTE_STYLES = {
   primary: {
-    color: '#2563eb',
-    weight: 7,
-    opacity: 0.95,
-    lineCap: 'round',
-    lineJoin: 'round',
+    strokeColor: '#2563eb',
+    strokeWeight: 7,
+    strokeOpacity: 0.95,
   },
   secondary: {
-    color: '#94a3b8',
-    weight: 4,
-    opacity: 0.45,
-    dashArray: '12 10',
-    lineCap: 'round',
-    lineJoin: 'round',
-  },
-  traveled: {
-    color: '#64748b',
-    weight: 8,
-    opacity: 0.35,
-    lineCap: 'round',
-    lineJoin: 'round',
+    strokeColor: '#94a3b8',
+    strokeWeight: 4,
+    strokeOpacity: 0.45,
+    dashed: true,
   },
 };
 
-function MapInteractionController({ onUserMovedChange, recenterToken }) {
-  const map = useMap();
-  const userMovedRef = useRef(false);
-
-  useEffect(() => {
-    const markMoved = () => {
-      if (userMovedRef.current) return;
-      userMovedRef.current = true;
-      onUserMovedChange(true);
-    };
-
-    map.on('dragstart', markMoved);
-    map.on('zoomstart', markMoved);
-    map.on('touchstart', markMoved);
-
-    return () => {
-      map.off('dragstart', markMoved);
-      map.off('zoomstart', markMoved);
-      map.off('touchstart', markMoved);
-    };
-  }, [map, onUserMovedChange]);
-
-  useEffect(() => {
-    if (!recenterToken) return;
-    userMovedRef.current = false;
-    onUserMovedChange(false);
-  }, [recenterToken, onUserMovedChange]);
-
-  return null;
+function toLatLng(point) {
+  return { lat: point.latitude, lng: point.longitude };
 }
 
-function MapFollowDriver({ center, enabled }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!enabled || !center) return;
-    map.panTo(center, { animate: true, duration: 0.8, easeLinearity: 0.25 });
-  }, [center, enabled, map]);
-
-  return null;
+function toPath(positions) {
+  return positions.map(([lat, lng]) => ({ lat, lng }));
 }
 
-function MapRecenterView({ center, zoom = 15, token }) {
-  const map = useMap();
+function createRoutePolyline(google, map, positions, style) {
+  const options = {
+    map,
+    path: toPath(positions),
+    strokeColor: style.strokeColor,
+    strokeWeight: style.strokeWeight,
+    strokeOpacity: style.strokeOpacity,
+    geodesic: true,
+  };
 
-  useEffect(() => {
-    if (!token || !center) return;
-    map.setView(center, zoom, { animate: true });
-  }, [center, map, token, zoom]);
+  if (style.dashed) {
+    options.icons = [
+      {
+        icon: {
+          path: 'M 0,-1 0,1',
+          strokeOpacity: 1,
+          scale: 4,
+        },
+        offset: '0',
+        repeat: '22px',
+      },
+    ];
+    options.strokeOpacity = 0;
+  }
 
-  return null;
-}
-function MapInitialFit({ points, enabled, fitToken }) {
-  const map = useMap();
-  const fittedRef = useRef(false);
-
-  useEffect(() => {
-    fittedRef.current = false;
-  }, [fitToken]);
-
-  useEffect(() => {
-    if (!enabled || fittedRef.current) return;
-    const valid = (points || []).filter(hasMapPoint);
-    if (valid.length < 2) return;
-    const bounds = L.latLngBounds(valid.map((p) => [p.latitude, p.longitude]));
-    map.fitBounds(bounds, { padding: [56, 56], maxZoom: 16, animate: true });
-    fittedRef.current = true;
-  }, [points, map, enabled, fitToken]);
-
-  return null;
+  return new google.maps.Polyline(options);
 }
 
-const MARKER_META = {
-  restaurant: { icon: restaurantPinIcon, label: 'Restaurant' },
-  destination: { icon: destinationPinIcon, label: 'Your location' },
-  driver: { icon: driverPinIcon, label: 'Delivery partner' },
-};
-
-function MapMarker({ point, type, label }) {
-  if (!hasMapPoint(point)) return null;
-  const meta = MARKER_META[type];
-
-  return (
-    <Marker
-      position={[point.latitude, point.longitude]}
-      icon={meta.icon}
-      zIndexOffset={type === 'driver' ? 1000 : 0}
-    >
-      <Tooltip permanent direction="top" offset={[0, -4]} className="!text-xs !font-medium">
-        {label || point.label || meta.label}
-      </Tooltip>
-    </Marker>
-  );
-}
-
-function AnimatedDriverMarker({ point }) {
-  const [position, setPosition] = useState(null);
-  const frameRef = useRef(null);
-  const prevRef = useRef(null);
-
-  useEffect(() => {
-    if (!hasMapPoint(point)) {
-      setPosition(null);
-      return undefined;
+function upsertMarker(google, map, markers, key, point, type, label) {
+  if (!hasMapPoint(point)) {
+    if (markers[key]) {
+      markers[key].setMap(null);
+      delete markers[key];
     }
+    return;
+  }
 
-    const next = [point.latitude, point.longitude];
-    if (!prevRef.current) {
-      prevRef.current = next;
-      setPosition(next);
-      return undefined;
-    }
+  const position = toLatLng(point);
+  const title = label || point.label || MARKER_LABELS[type];
 
-    const start = prevRef.current;
-    const startTime = performance.now();
-    const duration = 900;
+  if (!markers[key]) {
+    markers[key] = new google.maps.Marker({
+      map,
+      position,
+      icon: createPinIcon(google, type),
+      title,
+      zIndex: type === 'driver' ? 1000 : 1,
+    });
+    return;
+  }
 
-    const tick = (now) => {
-      const t = Math.min(1, (now - startTime) / duration);
-      const eased = 1 - (1 - t) ** 3;
-      setPosition(lerpLatLng(start, next, eased));
-      if (t < 1) {
-        frameRef.current = requestAnimationFrame(tick);
-      } else {
-        prevRef.current = next;
-      }
-    };
-
-    frameRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current);
-    };
-  }, [point?.latitude, point?.longitude]);
-
-  if (!position) return null;
-
-  return (
-    <MapMarker
-      point={{ latitude: position[0], longitude: position[1], label: point?.label }}
-      type="driver"
-    />
-  );
+  markers[key].setPosition(position);
+  markers[key].setTitle(title);
 }
 
 function MapRecenterButton({ onRecenter, visible }) {
@@ -347,11 +252,23 @@ export default function LiveDeliveryMap({
   deliveryAddress = null,
   statusLabel = 'Order is on the way',
 }) {
+  const containerRef = useRef(null);
+  const mapRef = useRef(null);
+  const googleRef = useRef(null);
+  const markersRef = useRef({});
+  const polylinesRef = useRef([]);
+  const programmaticMoveRef = useRef(false);
+  const fittedRef = useRef(false);
+  const driverAnimFrameRef = useRef(null);
+  const driverPositionRef = useRef(null);
+
   const [userMovedMap, setUserMovedMap] = useState(false);
   const [recenterToken, setRecenterToken] = useState(0);
   const [fitToken, setFitToken] = useState(0);
-  const [routeRefreshKey, setRouteRefreshKey] = useState(0);
+  const [routeRefreshKey] = useState(0);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapLoadFailed, setMapLoadFailed] = useState(false);
   const [primaryRoute, setPrimaryRoute] = useState({
     positions: [],
     distance: 0,
@@ -365,11 +282,11 @@ export default function LiveDeliveryMap({
   );
 
   const center = useMemo(() => {
-    if (followDriver && driver) return [driver.latitude, driver.longitude];
-    if (driver && legs.primary?.to) return [legs.primary.to.latitude, legs.primary.to.longitude];
-    if (destination) return [destination.latitude, destination.longitude];
-    if (restaurant) return [restaurant.latitude, restaurant.longitude];
-    return [17.435886, 78.3618];
+    if (followDriver && driver) return toLatLng(driver);
+    if (driver && legs.primary?.to) return toLatLng(legs.primary.to);
+    if (destination) return toLatLng(destination);
+    if (restaurant) return toLatLng(restaurant);
+    return { lat: 17.435886, lng: 78.3618 };
   }, [restaurant, destination, driver, followDriver, legs.primary]);
 
   const fitPoints = useMemo(() => {
@@ -378,6 +295,28 @@ export default function LiveDeliveryMap({
     if (legs.secondary) pts.push(legs.secondary.to);
     return pts;
   }, [restaurant, destination, driver, legs]);
+
+  const secondaryRoute = useRoadRoute({
+    from: legs.secondary?.from,
+    to: legs.secondary?.to,
+    enabled: !!legs.secondary,
+  });
+
+  const handlePrimaryRouteUpdate = useCallback((route) => {
+    setPrimaryRoute(route);
+  }, []);
+
+  useRoadRoute({
+    from: legs.primary?.from,
+    to: legs.primary?.to,
+    enabled: !!legs.primary,
+    includeSteps: navigationMode,
+    onRouteUpdate: handlePrimaryRouteUpdate,
+    freezeOrigin: !!driver,
+    checkDeviation: !!driver,
+    deviationPoint: driver,
+    refreshKey: routeRefreshKey,
+  });
 
   const navigationState = useMemo(
     () => getNavigationState(driver, primaryRoute.steps, primaryRoute.positions),
@@ -404,10 +343,6 @@ export default function LiveDeliveryMap({
 
   useDriverVoiceNavigation(navigationState, navigationMode && voiceEnabled);
 
-  const handlePrimaryRouteUpdate = useCallback((route) => {
-    setPrimaryRoute(route);
-  }, []);
-
   const handleRecenter = useCallback(() => {
     setUserMovedMap(false);
     setRecenterToken((token) => token + 1);
@@ -418,6 +353,192 @@ export default function LiveDeliveryMap({
 
   const followEnabled = followDriver && !!driver && !userMovedMap;
   const initialFitEnabled = !followDriver || !driver;
+  const fitTokenKey = `${fitToken}-${legs.primary?.label || 'route'}`;
+
+  useEffect(() => {
+    if (!containerRef.current) return undefined;
+
+    let cancelled = false;
+    setMapLoadFailed(false);
+
+    loadGoogleMaps()
+      .then((google) => {
+        if (cancelled || !containerRef.current) return;
+
+        googleRef.current = google;
+        const map = new google.maps.Map(containerRef.current, {
+          center,
+          zoom: 15,
+          scrollwheel: true,
+          disableDefaultUI: true,
+          zoomControl: true,
+          gestureHandling: 'greedy',
+        });
+
+        map.addListener('dragstart', () => {
+          if (!programmaticMoveRef.current) setUserMovedMap(true);
+        });
+
+        mapRef.current = map;
+        setMapReady(true);
+      })
+      .catch((error) => {
+        logGoogleMapsError(error, 'LiveDeliveryMap');
+        if (!cancelled) setMapLoadFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+      Object.values(markersRef.current).forEach((marker) => marker.setMap(null));
+      markersRef.current = {};
+      polylinesRef.current.forEach((polyline) => polyline.setMap(null));
+      polylinesRef.current = [];
+      mapRef.current = null;
+      googleRef.current = null;
+      setMapReady(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !googleRef.current) return;
+
+    polylinesRef.current.forEach((polyline) => polyline.setMap(null));
+    polylinesRef.current = [];
+
+    const routes = [
+      { positions: secondaryRoute.positions, style: ROUTE_STYLES.secondary },
+      { positions: primaryRoute.positions, style: ROUTE_STYLES.primary },
+    ];
+
+    routes.forEach(({ positions, style }) => {
+      if (positions.length < 2) return;
+      polylinesRef.current.push(
+        createRoutePolyline(googleRef.current, mapRef.current, positions, style)
+      );
+    });
+  }, [mapReady, primaryRoute.positions, secondaryRoute.positions]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !googleRef.current) return;
+
+    const destinationLabel = deliveryAddress ? 'Delivery' : MARKER_LABELS.destination;
+    upsertMarker(googleRef.current, mapRef.current, markersRef.current, 'restaurant', restaurant, 'restaurant');
+    upsertMarker(
+      googleRef.current,
+      mapRef.current,
+      markersRef.current,
+      'destination',
+      destination,
+      'destination',
+      destinationLabel
+    );
+  }, [mapReady, restaurant, destination, deliveryAddress]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !googleRef.current) return undefined;
+
+    if (!hasMapPoint(driver)) {
+      if (driverAnimFrameRef.current) cancelAnimationFrame(driverAnimFrameRef.current);
+      upsertMarker(googleRef.current, mapRef.current, markersRef.current, 'driver', null, 'driver');
+      driverPositionRef.current = null;
+      return undefined;
+    }
+
+    const next = [driver.latitude, driver.longitude];
+
+    if (!driverPositionRef.current) {
+      driverPositionRef.current = next;
+      upsertMarker(
+        googleRef.current,
+        mapRef.current,
+        markersRef.current,
+        'driver',
+        { latitude: next[0], longitude: next[1], label: driver.label },
+        'driver'
+      );
+      return undefined;
+    }
+
+    const start = driverPositionRef.current;
+    const startTime = performance.now();
+    const duration = 900;
+
+    const tick = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      const position = lerpLatLng(start, next, eased);
+
+      upsertMarker(
+        googleRef.current,
+        mapRef.current,
+        markersRef.current,
+        'driver',
+        { latitude: position[0], longitude: position[1], label: driver.label },
+        'driver'
+      );
+
+      if (t < 1) {
+        driverAnimFrameRef.current = requestAnimationFrame(tick);
+      } else {
+        driverPositionRef.current = next;
+      }
+    };
+
+    driverAnimFrameRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (driverAnimFrameRef.current) cancelAnimationFrame(driverAnimFrameRef.current);
+    };
+  }, [mapReady, driver?.latitude, driver?.longitude, driver?.label]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !followEnabled || !center) return;
+
+    programmaticMoveRef.current = true;
+    mapRef.current.panTo(center);
+    window.setTimeout(() => {
+      programmaticMoveRef.current = false;
+    }, 900);
+  }, [mapReady, center, followEnabled]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !recenterToken) return;
+    setUserMovedMap(false);
+  }, [mapReady, recenterToken]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !center || !(followDriver && driver && recenterToken)) return;
+
+    programmaticMoveRef.current = true;
+    mapRef.current.setCenter(center);
+    mapRef.current.setZoom(15);
+    window.setTimeout(() => {
+      programmaticMoveRef.current = false;
+    }, 300);
+  }, [mapReady, center, followDriver, driver, recenterToken]);
+
+  useEffect(() => {
+    fittedRef.current = false;
+  }, [fitTokenKey]);
+
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !googleRef.current || !initialFitEnabled || fittedRef.current) {
+      return;
+    }
+
+    const valid = fitPoints.filter(hasMapPoint);
+    if (valid.length < 2) return;
+
+    const bounds = new googleRef.current.maps.LatLngBounds();
+    valid.forEach((point) => bounds.extend(toLatLng(point)));
+
+    programmaticMoveRef.current = true;
+    mapRef.current.fitBounds(bounds, { top: 56, bottom: 56, left: 56, right: 56 });
+    fittedRef.current = true;
+    window.setTimeout(() => {
+      programmaticMoveRef.current = false;
+    }, 300);
+  }, [mapReady, fitPoints, initialFitEnabled, fitTokenKey]);
 
   if (!restaurant) {
     return (
@@ -430,11 +551,20 @@ export default function LiveDeliveryMap({
     );
   }
 
+  if (mapLoadFailed) {
+    return (
+      <div
+        className="flex items-center justify-center rounded-xl bg-stone-100 px-4 text-center text-sm text-stone-500"
+        style={{ height }}
+      >
+        Map unavailable — check VITE_GOOGLE_MAPS_API_KEY in .env
+      </div>
+    );
+  }
+
   const frameClass = framed
     ? 'delivery-map-frame delivery-map-frame--framed'
     : 'delivery-map-frame';
-
-  const destinationLabel = deliveryAddress ? 'Delivery' : MARKER_META.destination.label;
 
   return (
     <div className={frameClass} style={{ height }}>
@@ -450,64 +580,7 @@ export default function LiveDeliveryMap({
         onVoiceToggle={() => setVoiceEnabled((on) => !on)}
       />
 
-      <MapContainer
-        center={center}
-        zoom={15}
-        style={{ height: '100%', width: '100%' }}
-        scrollWheelZoom
-        className="delivery-map-canvas z-0"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-
-        <MapInteractionController
-          onUserMovedChange={setUserMovedMap}
-          recenterToken={recenterToken}
-        />
-        <MapFollowDriver center={center} enabled={followEnabled} />
-        <MapRecenterView
-          center={center}
-          zoom={15}
-          token={followDriver && driver ? recenterToken : 0}
-        />
-        <MapInitialFit
-          points={fitPoints}
-          enabled={initialFitEnabled}
-          fitToken={`${fitToken}-${legs.primary?.label || 'route'}`}
-        />
-
-        {legs.secondary && (
-          <RoadRoute
-            from={legs.secondary.from}
-            to={legs.secondary.to}
-            pathOptions={ROUTE_STYLES.secondary}
-          />
-        )}
-
-        {legs.primary && (
-          <RoadRoute
-            from={legs.primary.from}
-            to={legs.primary.to}
-            pathOptions={ROUTE_STYLES.primary}
-            includeSteps={navigationMode}
-            onRouteUpdate={handlePrimaryRouteUpdate}
-            freezeOrigin={!!driver}
-            checkDeviation={!!driver}
-            deviationPoint={driver}
-            refreshKey={routeRefreshKey}
-          />
-        )}
-
-        {hasMapPoint(restaurant) && <MapMarker point={restaurant} type="restaurant" />}
-
-        {hasMapPoint(destination) && (
-          <MapMarker point={destination} type="destination" label={destinationLabel} />
-        )}
-
-        {hasMapPoint(driver) && <AnimatedDriverMarker point={driver} />}
-      </MapContainer>
+      <div ref={containerRef} className="delivery-map-canvas z-0" />
 
       <MapRecenterButton onRecenter={handleRecenter} visible={userMovedMap} />
     </div>

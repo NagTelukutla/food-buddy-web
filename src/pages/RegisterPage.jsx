@@ -18,7 +18,7 @@ export default function RegisterPage() {
     const from = location.state?.from?.pathname;
     if (from) return from;
     if (items.length > 0) return '/checkout';
-    return '/customer/dashboard';
+    return '/customer/profile';
   };
 
   const onSubmit = async (data) => {

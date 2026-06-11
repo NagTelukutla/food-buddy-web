@@ -36,8 +36,6 @@ export default function CustomerOrdersPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const orderCount = orders.length;
-
   const phoneLabel = useMemo(() => formatPhoneDisplay(phone), [phone]);
 
   if (loading) {
@@ -53,20 +51,11 @@ export default function CustomerOrdersPage() {
   return (
     <PageContainer>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-stone-900">My Orders</h1>
-            <p className="mt-1 text-sm text-stone-500">
-              Only orders placed with your registered mobile number are shown here.
-            </p>
-          </div>
-          {phone && (
-            <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-brand-700">Your mobile</p>
-              <p className="mt-0.5 font-semibold text-brand-900">{phoneLabel}</p>
-              <p className="mt-1 text-xs text-brand-800">{orderCount} order{orderCount !== 1 ? 's' : ''} found</p>
-            </div>
-          )}
+        <div>
+          <h1 className="text-2xl font-bold text-stone-900">My Orders</h1>
+          <p className="mt-1 text-sm text-stone-500">
+            Only orders placed with your registered mobile number are shown here.
+          </p>
         </div>
 
         {orders.length === 0 ? (
@@ -85,22 +74,19 @@ export default function CustomerOrdersPage() {
             {orders.map((order) => (
               <div
                 key={order.id}
-                className="card flex flex-wrap items-center justify-between gap-4 p-4 transition hover:border-brand-200 hover:shadow-sm"
+                className="glass-order-card flex flex-wrap items-center justify-between gap-4 p-4 transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <div>
                   <p className="font-semibold text-stone-800">{order.order_id}</p>
                   <p className="text-sm text-stone-500">
                     {order.order_type} · {formatCurrency(order.total)} · {formatDate(order.created_at)}
                   </p>
-                  <p className="mt-0.5 text-xs text-stone-400">
-                    Mobile: {formatPhoneDisplay(order.phone)}
-                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={order.status} />
                   <Link
                     to={`/track-order/${order.order_id}`}
-                    className="rounded-lg bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-700 transition hover:bg-brand-100"
+                    className="rounded-lg bg-white/50 px-3 py-1.5 text-sm font-medium text-brand-700 ring-1 ring-white/70 backdrop-blur-sm transition hover:bg-white/70"
                   >
                     Track
                   </Link>

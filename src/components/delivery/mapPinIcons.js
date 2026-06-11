@@ -1,26 +1,42 @@
-import L from 'leaflet';
-
 const PIN_COLORS = {
   restaurant: { fill: '#22c55e', stroke: '#15803d' },
   destination: { fill: '#ef4444', stroke: '#b91c1c' },
   driver: { fill: '#3b82f6', stroke: '#1d4ed8' },
 };
 
-function createPinIcon(type) {
+const DRIVER_BIKE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true"><g><path fill="#a5c3dc" d="M176 288H32c-8.837 0-16-7.163-16-16V144c0-8.837 7.163-16 16-16h144c8.837 0 16 7.163 16 16v128c0 8.837-7.163 16-16 16z"/><path fill="#d7e6f0" d="M96 288H32c-8.837 0-16-7.163-16-16V144c0-8.837 7.163-16 16-16h64c8.837 0 16 7.163 16 16v128c0 8.837-7.163 16-16 16z"/><path fill="#e1322d" d="M400 168H290.022l-.97-.971-27.879-27.879-4.121-4.121A23.925 23.925 0 0 0 240.081 128c-13.255 0-24 10.745-24 24a23.928 23.928 0 0 0 7.029 16.971l32 32 8 8A23.998 23.998 0 0 0 280.08 216h80a8 8 0 0 0 8-8v-8c0 8.836 7.163 16 16 16H400a8 8 0 0 0 16 0v-32c0-8.836-7.164-16-16-16z"/><path fill="#f0915a" d="M416 184v32c0 4.42-3.58 8-8 8s-8-3.58-8-8h-15.92c-8.84 0-16-7.16-16-16v8c0 4.42-3.58 8-8 8H280v-48h120c8.84 0 16 7.16 16 16z"/><path fill="#e1322d" d="M416 416h-96v-32h64c17.673 0 32 14.327 32 32z"/><path fill="#463c4b" d="M200 256v16c0 26.51 21.49 48 48 48h72v64h64v-96c0-17.673-14.327-32-32-32zM144 368h-32c-35.346 0-64 28.654-64 64 0 35.346 28.654 64 64 64h32c35.346 0 64-28.654 64-64 0-35.346-28.654-64-64-64z"/><circle cx="112" cy="432" r="64" fill="#555a6e"/><circle cx="112" cy="432" r="40" fill="#e6e6eb"/><circle cx="112" cy="432" r="16" fill="#a5c3dc"/><path fill="#463c4b" d="M432 368h-32c-35.346 0-64 28.654-64 64 0 35.346 28.654 64 64 64h32c35.346 0 64-28.654 64-64 0-35.346-28.654-64-64-64z"/><circle cx="400" cy="432" r="64" fill="#555a6e"/><circle cx="400" cy="432" r="40" fill="#e6e6eb"/><circle cx="400" cy="432" r="16" fill="#a5c3dc"/><path fill="#5faa46" d="M224.086 415.979c4.312-.005 50.151 0 71.901.005.095 0 .189-.006.285-.007-12.37-.001-22.291 0-24.186.001-17.68.02-32.024-14.302-32.034-31.982L240 336h-48l.052 47.997c.01 17.68 14.354 32.003 32.034 31.982z"/><path fill="#f04b37" d="M336 416h-96v-32h64c17.673 0 32 14.327 32 32z"/><path fill="#463c4b" d="M456 208h-32c-8.837 0-16-7.163-16-16s7.163-16 16-16h32c8.837 0 16 7.163 16 16s-7.163 16-16 16z"/><path fill="#91c83c" d="M392 224h32c17.673 0 32-14.327 32-32 0-17.673-14.327-32-32-32h-32c-17.673 0-32 14.327-32 32 0 17.673 14.327 32 32 32zM344 367.985c0 26.515-21.498 48.007-48.013 48-21.751-.006-67.59-.01-71.901-.005-17.68.02-32.024-14.302-32.034-31.983L192 336H96v96h200c35.346 0 64-28.654 64-64v-96c0-26.51 21.49-48 48-48h-16c-26.51 0-48 21.49-48 48z"/><path fill="#5faa46" d="M296 432h112c35.346 0 64-28.654 64-64v-96c0-26.51-21.49-48-48-48h-16c-26.51 0-48 21.49-48 48v96c0 35.346-28.654 64-64 64z"/><path fill="#91c83c" d="M440 304h-48a8 8 0 0 1 0-16h48a8 8 0 0 1 0 16zM440 336h-48a8 8 0 0 1 0-16h48a8 8 0 0 1 0 16z"/><path fill="#5faa46" d="M112 336H80c-35.346 0-64 28.654-64 64v16c0 8.837 7.163 16 16 16h128c8.837 0 16-7.163 16-16v-16c0-35.346-28.654-64-64-64z"/><path fill="#91c83c" d="M80 336c35.346 0 64 28.654 64 64v16c0 8.837-7.163 16-16 16H32c-8.837 0-16-7.163-16-16v-16c0-35.346 28.654-64 64-64z"/><path fill="#8c3c14" d="M40 336h200a8 8 0 0 0 8-8c0-22.091-17.909-40-40-40H40a8 8 0 0 0-8 8v32a8 8 0 0 0 8 8z"/><path fill="#a55023" d="M40 336h152a8 8 0 0 0 8-8c0-22.091-17.909-40-40-40H40a8 8 0 0 0-8 8v32a8 8 0 0 0 8 8z"/><path fill="#5faa46" d="M400 368h32c35.346 0 64 28.654 64 64h-96z"/><path fill="#91c83c" d="M336 432c35.346 0 64-28.654 64-64 35.346 0 64 28.654 64 64z"/><circle cx="424" cy="192" r="32" fill="#a5c3dc"/><circle cx="424" cy="192" r="21.333" fill="#e6e6eb"/><path fill="#463c4b" d="M360 208h-40c-8.837 0-16-7.163-16-16s7.163-16 16-16h40c8.837 0 16 7.163 16 16s-7.163 16-16 16z"/><circle cx="320" cy="192" r="16" fill="#555a6e"/><path fill="#e1322d" d="M152 272h96c8.837 0 16-7.163 16-16V152c0-13.255-10.745-24-24-24h-80c-13.255 0-24 10.745-24 24v104c0 8.837 7.163 16 16 16z"/><path fill="#f0915a" d="M240 128h-72V48c0-17.673 14.327-32 32-32h24c17.673 0 32 14.327 32 32v64c0 8.837-7.163 16-16 16z"/><path fill="#fab991" d="M208 128h32c8.837 0 16-7.163 16-16V48c0-17.673-14.327-32-32-32-17.673 0-32 14.327-32 32v64c0 8.837 7.163 16 16 16z"/><path fill="#463c4b" d="M200 88a8 8 0 0 0 8-8V64c0-8.837 7.163-16 16-16h32c0-17.673-14.327-32-32-32h-32c-17.673 0-32 14.327-32 32v52c0 6.627 5.373 12 12 12s12-5.373 12-12V88z"/><path fill="#f0915a" d="M192 96a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8c-8.837 0-16 7.163-16 16s7.163 16 16 16z"/><path fill="#e1322d" d="M224 16h-32c-17.673 0-32 14.327-32 32v16h96V48c0-17.673-14.327-32-32-32z"/><path fill="#f04b37" d="M224 48h40c8.837 0 16 7.163 16 16h-72c0-8.837 7.163-16 16-16z"/><path fill="#555a6e" d="M136 256v16c0 26.51 21.49 48 48 48h56.052v64h64v-96c0-17.673-14.327-32-32-32z"/><path fill="#fab991" d="M319.919 216H304c-8.837 0-16-7.163-16-16v-32h31.919c8.836 0 16 7.163 16 16v32a8 8 0 0 1-16 0z"/><path fill="#f0915a" d="M288 168v40a8 8 0 0 1-8 8h-80a24.003 24.003 0 0 1-16.97-7.029l-40-40 33.941-33.941 32.97 32.97z"/><path fill="#f04b37" d="M176.971 135.029A23.933 23.933 0 0 0 160 128c-13.255 0-24 10.745-24 24a23.928 23.928 0 0 0 7.029 16.971l32 32 33.941-33.941z"/></g></svg>`;
+
+const DRIVER_BIKE_SIZE = 56;
+
+function createPinSvg(type) {
   const { fill, stroke } = PIN_COLORS[type] || PIN_COLORS.driver;
 
-  return L.divIcon({
-    className: 'delivery-map-pin-icon',
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 40" aria-hidden="true">
-      <path d="M14 0C6.82 0 1 5.82 1 13c0 10.5 13 27 13 27s13-16.5 13-27C27 5.82 21.18 0 14 0z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-      <circle cx="14" cy="13" r="5.5" fill="#ffffff"/>
-    </svg>`,
-    iconSize: [28, 40],
-    iconAnchor: [14, 40],
-    tooltipAnchor: [0, -36],
-  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 40" aria-hidden="true">
+    <path d="M14 0C6.82 0 1 5.82 1 13c0 10.5 13 27 13 27s13-16.5 13-27C27 5.82 21.18 0 14 0z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+    <circle cx="14" cy="13" r="5.5" fill="#ffffff"/>
+  </svg>`;
 }
 
-export const restaurantPinIcon = createPinIcon('restaurant');
-export const destinationPinIcon = createPinIcon('destination');
-export const driverPinIcon = createPinIcon('driver');
+export function createPinIcon(google, type) {
+  if (type === 'driver') {
+    const svg = encodeURIComponent(DRIVER_BIKE_SVG);
+    return {
+      url: `data:image/svg+xml,${svg}`,
+      scaledSize: new google.maps.Size(DRIVER_BIKE_SIZE, DRIVER_BIKE_SIZE),
+      anchor: new google.maps.Point(DRIVER_BIKE_SIZE / 2, DRIVER_BIKE_SIZE * 432 / 512),
+    };
+  }
+
+  const svg = encodeURIComponent(createPinSvg(type));
+  return {
+    url: `data:image/svg+xml,${svg}`,
+    scaledSize: new google.maps.Size(28, 40),
+    anchor: new google.maps.Point(14, 40),
+  };
+}
+
+export const MARKER_LABELS = {
+  restaurant: 'Restaurant',
+  destination: 'Your location',
+  driver: 'Delivery partner',
+};

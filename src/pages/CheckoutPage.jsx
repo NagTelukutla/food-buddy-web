@@ -5,10 +5,12 @@ import toast from 'react-hot-toast';
 import { paymentApi } from '../api/paymentApi';
 import GlassSelect from '../components/common/GlassSelect';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import ModalShell from '../components/common/ModalShell';
 import PageContainer from '../components/common/PageContainer';
 import PageTitle from '../components/common/PageTitle';
 import CartSummary from '../components/cart/CartSummary';
 import { useCart } from '../context/CartContext';
+import { useDeliveryLocation } from '../context/DeliveryLocationContext';
 import { openRazorpayCheckout } from '../services/razorpayCheckout';
 import { ORDER_TYPES } from '../utils/constants';
 import { isValidPhone } from '../utils/phone';
@@ -21,16 +23,19 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, subtotal, tax, total, clearCart } = useCart();
   const { activeSessions } = useAuth();
+  const { deliveryLocation } = useDeliveryLocation();
   const customerSignedIn = hasCustomerSession(activeSessions);
   const orderingAllowed = canPlaceOrders(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);
   const [submitting, setSubmitting] = useState(false);
   const [paymentReady, setPaymentReady] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: { order_type: 'Delivery' },
@@ -58,6 +63,12 @@ export default function CheckoutPage() {
       })
       .catch(() => {});
   }, [customerSignedIn, reset]);
+
+  useEffect(() => {
+    if (orderType === 'Delivery' && deliveryLocation?.address) {
+      setValue('delivery_address', deliveryLocation.address, { shouldValidate: true });
+    }
+  }, [deliveryLocation, orderType, setValue]);
 
   if (items.length === 0) {
     navigate('/cart');
@@ -135,7 +146,51 @@ export default function CheckoutPage() {
 
   return (
     <PageContainer>
-      <PageTitle>Checkout</PageTitle>
+      <div className="mb-4 flex items-center gap-3 sm:mb-6">
+        <button
+          type="button"
+          onClick={() => setShowLeaveConfirm(true)}
+          className="glass-icon-btn shrink-0"
+          aria-label="Back to cart"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <PageTitle className="mb-0">Checkout</PageTitle>
+      </div>
+
+      {showLeaveConfirm && (
+        <ModalShell
+          title="Leave checkout?"
+          onClose={() => setShowLeaveConfirm(false)}
+          compact
+          centered
+          confirmCentered
+        >
+          <div className="flex flex-1 flex-col items-center justify-center px-2 text-center">
+            <p className="text-sm text-stone-600">
+              Your cart items will be saved. Are you sure you want to go back to the cart?
+            </p>
+          </div>
+          <div className="mt-2 flex gap-3">
+            <button
+              type="button"
+              className="btn-secondary flex-1"
+              onClick={() => setShowLeaveConfirm(false)}
+            >
+              Stay
+            </button>
+            <button
+              type="button"
+              className="btn-primary flex-1"
+              onClick={() => navigate('/cart')}
+            >
+              Go to Cart
+            </button>
+          </div>
+        </ModalShell>
+      )}
 
       {customerSignedIn && !orderingAllowed && (
         <div className="mb-6">

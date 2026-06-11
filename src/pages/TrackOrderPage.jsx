@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { orderApi } from '../api/orderApi';
 import { deliveryApi } from '../api/restaurantApi';
@@ -6,9 +6,10 @@ import ErrorState from '../components/common/ErrorState';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import PageContainer from '../components/common/PageContainer';
 import PageTitle from '../components/common/PageTitle';
-import LiveDeliveryMap from '../components/delivery/LiveDeliveryMap';
 import OrderTracker from '../components/order/OrderTracker';
 import { formatCurrency, formatDate } from '../utils/format';
+
+const LiveDeliveryMap = lazy(() => import('../components/delivery/LiveDeliveryMap'));
 
 const DELIVERY_STATUS_LABELS = {
   pending_acceptance: 'Awaiting driver assignment',
@@ -63,6 +64,10 @@ export default function TrackOrderPage() {
     order?.order_type === 'Delivery' &&
     (liveTrack?.live_tracking_enabled || liveTrack?.driver);
 
+  const orderSubtotal = order?.items?.reduce((sum, item) => sum + item.line_total, 0) ?? 0;
+  const orderTax =
+    order?.tax ?? Math.max(0, Math.round((order?.total - orderSubtotal) * 100) / 100);
+
   return (
     <PageContainer>
       <PageTitle>Track Order</PageTitle>
@@ -92,18 +97,26 @@ export default function TrackOrderPage() {
                 )}
               </div>
               <div className="glass-surface-soft p-3">
-                <LiveDeliveryMap
-                  restaurant={liveTrack.restaurant}
-                  destination={liveTrack.destination}
-                  driver={liveTrack.driver}
-                  deliveryStatus={liveTrack.delivery_status}
-                  deliveryAddress={liveTrack.delivery_address}
-                  followDriver={!!liveTrack.driver}
-                  statusLabel={
-                    DELIVERY_STATUS_LABELS[liveTrack.delivery_status] || 'Order is on the way'
+                <Suspense
+                  fallback={
+                    <div className="flex min-h-[220px] items-center justify-center">
+                      <LoadingSpinner />
+                    </div>
                   }
-                  framed
-                />
+                >
+                  <LiveDeliveryMap
+                    restaurant={liveTrack.restaurant}
+                    destination={liveTrack.destination}
+                    driver={liveTrack.driver}
+                    deliveryStatus={liveTrack.delivery_status}
+                    deliveryAddress={liveTrack.delivery_address}
+                    followDriver={!!liveTrack.driver}
+                    statusLabel={
+                      DELIVERY_STATUS_LABELS[liveTrack.delivery_status] || 'Order is on the way'
+                    }
+                    framed
+                  />
+                </Suspense>
               </div>
               {liveTrack.delivery_address && (
                 <p className="border-t border-white/35 px-4 py-2 text-xs text-stone-600">
@@ -115,11 +128,6 @@ export default function TrackOrderPage() {
 
           <div className="card">
             <OrderTracker status={order.status} orderType={order.order_type} />
-            {order.delivery_status && (
-              <p className="mt-3 text-sm text-stone-600">
-                Delivery: <span className="font-medium capitalize">{order.delivery_status.replace(/_/g, ' ')}</span>
-              </p>
-            )}
           </div>
           <div className="card">
             <h3 className="mb-4 font-semibold">Order Details</h3>
@@ -136,10 +144,6 @@ export default function TrackOrderPage() {
                 <dt className="text-stone-500">Placed</dt>
                 <dd className="text-right">{formatDate(order.created_at)}</dd>
               </div>
-              <div className="flex flex-wrap justify-between gap-2 border-t border-stone-100 pt-3 font-bold">
-                <dt>Total</dt>
-                <dd className="text-brand-700">{formatCurrency(order.total)}</dd>
-              </div>
             </dl>
             <ul className="divide-y border-t border-stone-100 text-sm">
               {order.items.map((item) => (
@@ -151,6 +155,20 @@ export default function TrackOrderPage() {
                 </li>
               ))}
             </ul>
+            <dl className="mt-4 space-y-3 border-t border-stone-100 pt-4 text-sm">
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-stone-500">Subtotal</dt>
+                <dd className="font-medium">{formatCurrency(orderSubtotal)}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2">
+                <dt className="text-stone-500">Tax</dt>
+                <dd className="font-medium">{formatCurrency(orderTax)}</dd>
+              </div>
+              <div className="flex flex-wrap justify-between gap-2 border-t border-stone-100 pt-3 text-base font-bold">
+                <dt>Total Amount</dt>
+                <dd className="text-brand-700">{formatCurrency(order.total)}</dd>
+              </div>
+            </dl>
           </div>
         </div>
       )}

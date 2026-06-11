@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { deliveryApi } from '../../api/restaurantApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import LiveDeliveryMap from '../../components/delivery/LiveDeliveryMap';
 import { useAuth } from '../../context/AuthContext';
 import { useDriverLocationTracker } from '../../hooks/useDriverLocation';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { getDriverAction, normalizeOrderStatus } from '../../utils/orderWorkflow';
+
+const LiveDeliveryMap = lazy(() => import('../../components/delivery/LiveDeliveryMap'));
 
 const STATUS_META = {
   pending_acceptance: {
@@ -386,18 +387,26 @@ export default function DeliveryDashboardPage() {
           </div>
           <div className="bg-white/50 p-2.5">
             <div className="overflow-hidden rounded-[1.25rem] ring-1 ring-black/5">
-              <LiveDeliveryMap
-                restaurant={liveTrack.restaurant}
-                destination={liveTrack.destination}
-                driver={liveTrack.driver}
-                deliveryStatus={liveTrack.delivery_status}
-                deliveryAddress={liveTrack.delivery_address}
-                height="360px"
-                followDriver
-                navigationMode
-                framed
-                statusLabel="Order is on the way"
-              />
+              <Suspense
+                fallback={
+                  <div className="flex min-h-[220px] items-center justify-center bg-white/50">
+                    <LoadingSpinner />
+                  </div>
+                }
+              >
+                <LiveDeliveryMap
+                  restaurant={liveTrack.restaurant}
+                  destination={liveTrack.destination}
+                  driver={liveTrack.driver}
+                  deliveryStatus={liveTrack.delivery_status}
+                  deliveryAddress={liveTrack.delivery_address}
+                  height="360px"
+                  followDriver
+                  navigationMode
+                  framed
+                  statusLabel="Order is on the way"
+                />
+              </Suspense>
             </div>
           </div>
         </section>

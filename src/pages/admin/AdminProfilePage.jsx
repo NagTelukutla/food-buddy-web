@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
+import ProfileLogoutButton from '../../components/layout/ProfileLogoutButton';
 import { AdminPageHeader } from '../../layouts/AdminLayout';
 import { getRoleLabel } from '../../utils/roles';
 
@@ -57,6 +58,9 @@ export default function AdminProfilePage() {
               <dd className="mt-1 font-medium text-brand-700">{getRoleLabel(role)}</dd>
             </div>
           </dl>
+          <div className="mt-8 border-t border-stone-100 pt-6">
+            <ProfileLogoutButton />
+          </div>
         </div>
       </div>
     </div>

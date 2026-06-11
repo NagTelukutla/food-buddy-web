@@ -128,10 +128,10 @@ export function AuthProvider({ children }) {
     [bump]
   );
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     const { data } = await authApi.login(username, password);
     return establishSession(data);
-  };
+  }, [establishSession]);
 
   const logout = useCallback(
     (options = {}) => {

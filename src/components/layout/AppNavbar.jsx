@@ -3,46 +3,19 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { APP_NAME } from '../../utils/constants';
+import { buildNavLinks, isStaffOnlyHeader, shouldShowLogin } from '../../utils/navLinks';
 import {
-  buildNavLinks,
-  buildMobileNavLinks,
-  isStaffOnlyHeader,
-  shouldShowLogin,
-} from '../../utils/navLinks';
-import {
-  canUseCartFeatures,
   getCustomerSession,
   getLogoHomePath,
   getStaffProfilePath,
   getStaffSessions,
-  getRoleLabel,
   ROLES,
 } from '../../utils/roles';
 import ProfileMenu from './ProfileMenu';
-import MobileSlideMenu from './MobileSlideMenu';
-import MobileSlideMenuProfileFooter from './MobileSlideMenuProfileFooter';
-import { getMobileNavLinkClass } from '../../utils/mobileNavStyles';
+import HeaderSearchPopup from './HeaderSearchPopup';
+import HeaderLocationPicker from './HeaderLocationPicker';
 
-function NavLinkItem({ link, itemCount, onNavigate, mobile = false }) {
-  if (mobile) {
-    return (
-      <NavLink
-        to={link.to}
-        end={link.end}
-        onClick={onNavigate}
-        className={({ isActive }) => getMobileNavLinkClass(isActive)}
-      >
-        <span>{link.icon}</span>
-        <span className="flex-1">{link.isCart ? 'Cart' : link.label}</span>
-        {link.isCart && itemCount > 0 && (
-          <span className="flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-brand-600 px-1.5 text-[11px] font-bold text-white">
-            {itemCount}
-          </span>
-        )}
-      </NavLink>
-    );
-  }
-
+function NavLinkItem({ link, itemCount, onNavigate }) {
   if (link.isCart) {
     return (
       <NavLink
@@ -93,8 +66,7 @@ export default function AppNavbar() {
   const { activeSessions, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isStaffRoute =
     location.pathname.startsWith('/admin') ||
@@ -102,7 +74,6 @@ export default function AppNavbar() {
     location.pathname.startsWith('/delivery');
   const staffOnlyHeader = isStaffOnlyHeader(activeSessions) && isStaffRoute;
   const navLinks = useMemo(() => buildNavLinks(activeSessions), [activeSessions]);
-  const showCart = canUseCartFeatures(activeSessions);
   const showLogin = shouldShowLogin(activeSessions);
   const customerSession = getCustomerSession(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);
@@ -112,16 +83,11 @@ export default function AppNavbar() {
     : customerSession?.user ?? staffSessions[0]?.user ?? null;
 
   const fullName = APP_NAME;
-  const shortName = APP_NAME;
 
   const pillLinks = staffOnlyHeader
     ? []
     : navLinks.filter((l) => !l.isCart && l.id !== 'login');
   const cartLink = staffOnlyHeader ? null : navLinks.find((l) => l.isCart);
-  const mobileNavLinks = useMemo(
-    () => (staffOnlyHeader ? [] : buildMobileNavLinks(activeSessions)),
-    [activeSessions, staffOnlyHeader]
-  );
   const showMainNav = pillLinks.length > 0 || !!cartLink;
 
   const profilePath = useMemo(() => {
@@ -133,9 +99,19 @@ export default function AppNavbar() {
     return staffRole ? getStaffProfilePath(staffRole) : '/login';
   }, [customerSession, location.pathname, staffSessions]);
   const profileLabel = customerSession ? 'My Profile' : 'Profile';
-  const mobileProfileRoleLabel = customerSession
-    ? 'Customer'
-    : getRoleLabel(staffSessions[0]?.role) || 'Staff';
+
+  const showSearch = useMemo(() => {
+    const buckets = new Set(activeSessions.map((s) => s.bucket));
+    const isAdminOrDriverSession = buckets.has('restaurant') || buckets.has('delivery');
+    const isAdminOrDriverRoute =
+      location.pathname.startsWith('/admin') || location.pathname.startsWith('/delivery');
+
+    if (isAdminOrDriverRoute) return false;
+    if (isAdminOrDriverSession && !buckets.has('customer')) return false;
+    return true;
+  }, [activeSessions, location.pathname]);
+
+  const showLocation = showSearch;
 
   const logoHomePath = useMemo(
     () => getLogoHomePath(activeSessions),
@@ -143,51 +119,41 @@ export default function AppNavbar() {
   );
 
   useEffect(() => {
-    setMenuOpen(false);
-    setSidebarOpen(false);
+    setSearchOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    const handleToggle = () => setSidebarOpen((open) => !open);
-    const handleOpen = () => setSidebarOpen(true);
-    const handleClose = () => setSidebarOpen(false);
-
-    window.addEventListener('toggle-sidebar', handleToggle);
-    window.addEventListener('open-sidebar', handleOpen);
-    window.addEventListener('close-sidebar', handleClose);
-    return () => {
-      window.removeEventListener('toggle-sidebar', handleToggle);
-      window.removeEventListener('open-sidebar', handleOpen);
-      window.removeEventListener('close-sidebar', handleClose);
-    };
-  }, []);
-
-  const closeMenu = () => setMenuOpen(false);
+    if (!showSearch) setSearchOpen(false);
+  }, [showSearch]);
 
   const handleLogout = () => {
     logout({ all: true });
-    closeMenu();
     navigate('/login');
   };
 
   return (
     <header className="app-header">
-      <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link
-          to={logoHomePath}
-          className="group flex min-w-0 shrink-0 items-center gap-2.5 sm:gap-3"
-          onClick={closeMenu}
-        >
-          <img
-            src="/logo.png"
-            alt=""
-            className="h-10 w-10 shrink-0 rounded-full object-cover"
-          />
-          <span className="truncate font-display text-base font-bold text-brand-900 sm:text-lg">
-            <span className="sm:hidden">{shortName}</span>
-            <span className="hidden sm:inline">{fullName}</span>
-          </span>
-        </Link>
+      <div className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 sm:gap-3 sm:px-6 sm:py-3 ${searchOpen ? 'invisible' : ''}`}>
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+          <Link to={logoHomePath} className="group shrink-0" aria-label={fullName}>
+            <img
+              src="/logo.png"
+              alt=""
+              className="h-10 w-10 rounded-full object-cover"
+            />
+          </Link>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <Link
+              to={logoHomePath}
+              className="truncate font-display text-base font-bold leading-tight text-brand-900 sm:text-lg"
+            >
+              {fullName}
+            </Link>
+            {showLocation && !searchOpen && (
+              <HeaderLocationPicker className="w-full max-w-full" />
+            )}
+          </div>
+        </div>
 
         {showMainNav && (
           <nav className="hidden min-w-0 flex-1 items-center justify-end gap-2 md:flex" aria-label="Main navigation">
@@ -200,64 +166,25 @@ export default function AppNavbar() {
           </nav>
         )}
 
-        {!showMainNav && <div className="flex-1" aria-hidden />}
+        {!showMainNav && <div className="hidden flex-1 md:block" aria-hidden />}
 
         <div className="flex shrink-0 items-center gap-2">
-          {staffOnlyHeader ? (
+          {showSearch && !searchOpen && (
             <button
               type="button"
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent('toggle-sidebar'));
-              }}
-              className={`nav-icon-btn ${sidebarOpen ? 'border-brand-300/60 text-brand-700' : ''} md:hidden`}
-              aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+              onClick={() => setSearchOpen(true)}
+              className="nav-icon-btn md:hidden"
+              aria-expanded={searchOpen}
+              aria-label="Open search"
             >
-              {sidebarOpen ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
             </button>
-          ) : (
-            <div className="flex items-center gap-2 md:hidden">
-              {showCart && (
-                <Link
-                  to="/cart"
-                  className="nav-icon-btn relative bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-md shadow-brand-600/25 hover:from-brand-700 hover:to-brand-600"
-                  aria-label={`Cart, ${itemCount} items`}
-                >
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                  {itemCount > 0 && (
-                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-dark-900 px-1 text-[10px] font-bold text-white ring-2 ring-white">
-                      {itemCount}
-                    </span>
-                  )}
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={() => setMenuOpen((open) => !open)}
-                className={`nav-icon-btn ${menuOpen ? 'border-brand-300/60 text-brand-700' : ''}`}
-                aria-expanded={menuOpen}
-                aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              >
-                {menuOpen ? (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                ) : (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                )}
-              </button>
-            </div>
           )}
 
           {identifiedUser ? (
@@ -280,31 +207,9 @@ export default function AppNavbar() {
         </div>
       </div>
 
-      <MobileSlideMenu
-        open={menuOpen && !staffOnlyHeader}
-        onClose={closeMenu}
-        footer={
-          identifiedUser ? (
-            <MobileSlideMenuProfileFooter
-              user={identifiedUser}
-              roleLabel={mobileProfileRoleLabel}
-              profilePath={profilePath}
-              onNavigate={closeMenu}
-              onLogout={handleLogout}
-            />
-          ) : null
-        }
-      >
-        {mobileNavLinks.map((link) => (
-          <NavLinkItem
-            key={link.id}
-            link={link}
-            itemCount={itemCount}
-            onNavigate={closeMenu}
-            mobile
-          />
-        ))}
-      </MobileSlideMenu>
+      {showSearch && (
+        <HeaderSearchPopup open={searchOpen} onClose={() => setSearchOpen(false)} />
+      )}
     </header>
   );
 }
