@@ -8,6 +8,7 @@ import PageContainer from '../components/common/PageContainer';
 import PageTitle from '../components/common/PageTitle';
 import OrderTracker from '../components/order/OrderTracker';
 import { formatCurrency, formatDate } from '../utils/format';
+import { useDeliveryLocation } from '../context/DeliveryLocationContext';
 
 const LiveDeliveryMap = lazy(() => import('../components/delivery/LiveDeliveryMap'));
 
@@ -20,6 +21,7 @@ const DELIVERY_STATUS_LABELS = {
 
 export default function TrackOrderPage() {
   const { id } = useParams();
+  const { deliveryLocation } = useDeliveryLocation();
   const [order, setOrder] = useState(null);
   const [liveTrack, setLiveTrack] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,10 +108,18 @@ export default function TrackOrderPage() {
                 >
                   <LiveDeliveryMap
                     restaurant={liveTrack.restaurant}
-                    destination={liveTrack.destination}
+                    destination={
+                      (deliveryLocation?.latitude && deliveryLocation?.longitude)
+                        ? {
+                            latitude: deliveryLocation.latitude,
+                            longitude: deliveryLocation.longitude,
+                            label: deliveryLocation.address || 'Delivery address',
+                          }
+                        : liveTrack.destination
+                    }
                     driver={liveTrack.driver}
                     deliveryStatus={liveTrack.delivery_status}
-                    deliveryAddress={liveTrack.delivery_address}
+                    deliveryAddress={deliveryLocation?.address || liveTrack.delivery_address}
                     followDriver={!!liveTrack.driver}
                     statusLabel={
                       DELIVERY_STATUS_LABELS[liveTrack.delivery_status] || 'Order is on the way'
@@ -118,9 +128,9 @@ export default function TrackOrderPage() {
                   />
                 </Suspense>
               </div>
-              {liveTrack.delivery_address && (
+              {(deliveryLocation?.address || liveTrack.delivery_address) && (
                 <p className="border-t border-white/35 px-4 py-2 text-xs text-stone-600">
-                  Delivering to: {liveTrack.delivery_address}
+                  Delivering to: {deliveryLocation?.address || liveTrack.delivery_address}
                 </p>
               )}
             </div>

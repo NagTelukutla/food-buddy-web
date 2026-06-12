@@ -18,12 +18,14 @@ import { customerApi } from '../api/restaurantApi';
 import { useAuth } from '../context/AuthContext';
 import StaffOrderingBlocked from '../components/order/StaffOrderingBlocked';
 import { canPlaceOrders, getStaffSessions, hasCustomerSession } from '../utils/roles';
+import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, subtotal, tax, total, clearCart } = useCart();
   const { activeSessions } = useAuth();
   const { deliveryLocation } = useDeliveryLocation();
+  const { selectedRestaurant } = useSelectedRestaurant();
   const customerSignedIn = hasCustomerSession(activeSessions);
   const orderingAllowed = canPlaceOrders(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);
@@ -81,6 +83,9 @@ export default function CheckoutPage() {
     table_number: data.table_number || null,
     order_type: data.order_type,
     delivery_address: data.delivery_address?.trim() || null,
+    delivery_lat: data.order_type === 'Delivery' ? deliveryLocation?.latitude : null,
+    delivery_lng: data.order_type === 'Delivery' ? deliveryLocation?.longitude : null,
+    restaurant_id: items[0]?.restaurant_id || selectedRestaurant?.id || 1,
     notes: data.notes || null,
     items: items.map((i) => ({ menu_item_id: i.id, quantity: i.quantity })),
   });

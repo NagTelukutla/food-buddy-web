@@ -6,6 +6,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { DeliveryLocationProvider } from './context/DeliveryLocationContext';
+import { SelectedRestaurantProvider } from './context/SelectedRestaurantContext';
 import './index.css';
 
 const glassToastBase = {
@@ -22,43 +23,45 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <DeliveryLocationProvider>
-          <CartProvider>
-            <App />
-            <Toaster
-              position="top-center"
-              containerClassName="!top-[calc(var(--app-header-height)+0.75rem)]"
-              gutter={10}
-              toastOptions={{
-                duration: 3200,
-                className: 'glass-toast',
-                style: glassToastBase,
-                success: {
-                  className: 'glass-toast glass-toast-success',
+          <SelectedRestaurantProvider>
+            <CartProvider>
+              <App />
+              <Toaster
+                position="top-center"
+                containerClassName="!top-[calc(var(--app-header-height)+0.75rem)]"
+                gutter={10}
+                toastOptions={{
+                  duration: 3200,
+                  className: 'glass-toast',
                   style: glassToastBase,
-                  iconTheme: {
-                    primary: '#16a34a',
-                    secondary: '#f0fdf4',
+                  success: {
+                    className: 'glass-toast glass-toast-success',
+                    style: glassToastBase,
+                    iconTheme: {
+                      primary: '#16a34a',
+                      secondary: '#f0fdf4',
+                    },
                   },
-                },
-                error: {
-                  className: 'glass-toast glass-toast-error',
-                  style: glassToastBase,
-                  iconTheme: {
-                    primary: '#dc2626',
-                    secondary: '#fef2f2',
+                  error: {
+                    className: 'glass-toast glass-toast-error',
+                    style: glassToastBase,
+                    iconTheme: {
+                      primary: '#dc2626',
+                      secondary: '#fef2f2',
+                    },
                   },
-                },
-                loading: {
-                  className: 'glass-toast glass-toast-loading',
-                  style: glassToastBase,
-                  iconTheme: {
-                    primary: '#ea580c',
-                    secondary: '#fff7ed',
+                  loading: {
+                    className: 'glass-toast glass-toast-loading',
+                    style: glassToastBase,
+                    iconTheme: {
+                      primary: '#ea580c',
+                      secondary: '#fff7ed',
+                    },
                   },
-                },
-              }}
-            />
-        </CartProvider>
+                }}
+              />
+            </CartProvider>
+          </SelectedRestaurantProvider>
         </DeliveryLocationProvider>
       </AuthProvider>
     </BrowserRouter>

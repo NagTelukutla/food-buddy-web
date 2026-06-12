@@ -302,7 +302,7 @@ function shouldShowStaffNav(buckets) {
 }
 
 /** Build visible navbar links from active login sessions. */
-export function buildNavLinks(activeSessions = []) {
+export function buildNavLinks(activeSessions = [], hasSelectedRes = false) {
   const buckets = new Set(activeSessions.map((s) => s.bucket));
   const showCart = canUseCartFeatures(activeSessions);
   const showStaffNav = shouldShowStaffNav(buckets);
@@ -312,9 +312,13 @@ export function buildNavLinks(activeSessions = []) {
 
   if (!driverOnly) {
     links.push(
-      { id: 'home', to: '/', label: 'Home', end: true, icon: icons.home, group: 'public' },
-      { id: 'menu', to: '/menu', label: 'Menu', icon: icons.menu, group: 'public' }
+      { id: 'home', to: '/', label: 'Home', end: true, icon: icons.home, group: 'public' }
     );
+    if (hasSelectedRes) {
+      links.push(
+        { id: 'menu', to: '/menu', label: 'Menu', icon: icons.menu, group: 'public' }
+      );
+    }
   }
 
   if (showCart) {
@@ -357,12 +361,13 @@ const BOTTOM_NAV_FALLBACKS = [
   { id: 'menu', to: '/menu', label: 'Menu', icon: icons.menu, group: 'public' },
 ];
 
-function padBottomNavLinks(links) {
+function padBottomNavLinks(links, hasSelectedRes = false) {
   const seen = new Set(links.map((l) => l.id));
   const padded = [...links];
 
   for (const fallback of BOTTOM_NAV_FALLBACKS) {
     if (padded.length >= 4) break;
+    if (fallback.id === 'menu' && !hasSelectedRes) continue;
     if (!seen.has(fallback.id)) {
       padded.push(fallback);
       seen.add(fallback.id);
@@ -373,7 +378,7 @@ function padBottomNavLinks(links) {
 }
 
 /** Bottom bar links — exactly 4 items (profile is appended separately in BottomNav). */
-export function buildBottomNavLinks(activeSessions = [], pathname = '/') {
+export function buildBottomNavLinks(activeSessions = [], pathname = '/', hasSelectedRes = false) {
   const buckets = new Set(activeSessions.map((s) => s.bucket));
   const driverOnly = isDriverOnlySession(buckets);
   const isStaffRoute =
@@ -397,8 +402,8 @@ export function buildBottomNavLinks(activeSessions = [], pathname = '/') {
     return DELIVERY_NAV_ITEMS;
   }
 
-  const links = buildNavLinks(activeSessions).filter((l) => !l.isAuth);
-  return padBottomNavLinks(links);
+  const links = buildNavLinks(activeSessions, hasSelectedRes).filter((l) => !l.isAuth);
+  return padBottomNavLinks(links, hasSelectedRes);
 }
 
 /** Staff signed in without a customer session — dashboard in header, profile via dropdown. */

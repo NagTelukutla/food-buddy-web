@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
 import EmptyState from '../components/common/EmptyState';
 import ErrorState from '../components/common/ErrorState';
 import PageContainer from '../components/common/PageContainer';
@@ -8,13 +8,19 @@ import SkeletonCard from '../components/common/SkeletonCard';
 import MenuCard from '../components/menu/MenuCard';
 import MenuFilters from '../components/menu/MenuFilters';
 import { useMenu } from '../hooks/useMenu';
+import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
 
 export default function MenuPage() {
+  const { selectedRestaurant } = useSelectedRestaurant();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [category, setCategory] = useState('');
   const [availableOnly, setAvailableOnly] = useState(false);
-  const { items, loading, error, refetch } = useMenu({ search, category, availableOnly });
+  const { items, loading, error, refetch } = useMenu({ search, category, availableOnly, restaurantId: selectedRestaurant?.id });
+
+  if (!selectedRestaurant) {
+    return <Navigate to="/" replace />;
+  }
 
   useEffect(() => {
     const query = searchParams.get('q') || '';

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { customerApi } from '../api/restaurantApi';
 import { DELIVERY_LOCATION_STORAGE_KEY } from '../utils/constants';
 import { getAccuratePosition } from '../utils/geolocation';
-import { formatSavedAddress, reverseGeocode } from '../utils/nominatim';
+import { formatSavedAddress, reverseGeocode, searchPlaces, resolvePlaceSelection } from '../utils/nominatim';
 import { hasCustomerSession } from '../utils/roles';
 import { useAuth } from './AuthContext';
 
@@ -115,9 +115,10 @@ export function DeliveryLocationProvider({ children }) {
       setDeliveryLocation,
       detectCurrentLocation,
       selectSavedAddress: (addr) => {
+        const addressStr = formatSavedAddress(addr);
         const location = {
           label: addr.label,
-          address: formatSavedAddress(addr),
+          address: addressStr,
           latitude: null,
           longitude: null,
           city: addr.city,
@@ -126,6 +127,27 @@ export function DeliveryLocationProvider({ children }) {
           source: 'saved',
         };
         setDeliveryLocation(location);
+
+        searchPlaces(addressStr)
+          .then((suggestions) => {
+            if (suggestions && suggestions.length > 0) {
+              return resolvePlaceSelection(suggestions[0]);
+            }
+            return null;
+          })
+          .then((resolved) => {
+            if (resolved) {
+              setDeliveryLocation({
+                ...location,
+                latitude: resolved.latitude,
+                longitude: resolved.longitude,
+              });
+            }
+          })
+          .catch((err) => {
+            console.error('Failed to geocode saved address:', err);
+          });
+
         return location;
       },
     }),

@@ -15,6 +15,7 @@ export function useMenu(filters = {}) {
         search: filters.search || undefined,
         category: filters.category || undefined,
         available_only: filters.availableOnly || false,
+        restaurant_id: filters.restaurantId || undefined,
       });
       setItems(data.items);
       setCategories(data.categories);
@@ -23,7 +24,7 @@ export function useMenu(filters = {}) {
     } finally {
       setLoading(false);
     }
-  }, [filters.search, filters.category, filters.availableOnly]);
+  }, [filters.search, filters.category, filters.availableOnly, filters.restaurantId]);
 
   useEffect(() => {
     fetchMenu();

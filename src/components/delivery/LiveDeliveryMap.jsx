@@ -286,7 +286,7 @@ export default function LiveDeliveryMap({
     if (driver && legs.primary?.to) return toLatLng(legs.primary.to);
     if (destination) return toLatLng(destination);
     if (restaurant) return toLatLng(restaurant);
-    return { lat: 17.435886, lng: 78.3618 };
+    return { lat: restaurant?.latitude || destination?.latitude || 0, lng: restaurant?.longitude || destination?.longitude || 0 };
   }, [restaurant, destination, driver, followDriver, legs.primary]);
 
   const fitPoints = useMemo(() => {
@@ -421,7 +421,7 @@ export default function LiveDeliveryMap({
   useEffect(() => {
     if (!mapReady || !mapRef.current || !googleRef.current) return;
 
-    const destinationLabel = deliveryAddress ? 'Delivery' : MARKER_LABELS.destination;
+    const destinationLabel = deliveryAddress || MARKER_LABELS.destination;
     upsertMarker(googleRef.current, mapRef.current, markersRef.current, 'restaurant', restaurant, 'restaurant');
     upsertMarker(
       googleRef.current,

@@ -34,6 +34,7 @@ const HomePage = lazy(() => import('../pages/HomePage'));
 const LoginPage = lazy(() => import('../pages/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const MenuPage = lazy(() => import('../pages/MenuPage'));
+const RestaurantPage = lazy(() => import('../pages/RestaurantPage'));
 const OrderSuccessPage = lazy(() => import('../pages/OrderSuccessPage'));
 const PaymentCancelledPage = lazy(() => import('../pages/PaymentCancelledPage'));
 const PaymentFailedPage = lazy(() => import('../pages/PaymentFailedPage'));
@@ -47,6 +48,7 @@ export default function AppRoutes() {
           <Route element={<MainLayout />}>
             <Route index element={<HomePage />} />
             <Route path="menu" element={<MenuPage />} />
+            <Route path="restaurant/:id" element={<RestaurantPage />} />
             <Route path="cart" element={<CartPage />} />
             <Route
               path="checkout"

@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
 import { buildBottomNavLinks, customerIcons } from '../../utils/navLinks';
 import {
   getCustomerSession,
@@ -36,11 +37,12 @@ const BottomNavItem = memo(function BottomNavItem({ link, itemCount }) {
 export default function BottomNav() {
   const { itemCount } = useCart();
   const { activeSessions } = useAuth();
+  const { selectedRestaurant } = useSelectedRestaurant();
   const location = useLocation();
 
   const bottomLinks = useMemo(
-    () => buildBottomNavLinks(activeSessions, location.pathname),
-    [activeSessions, location.pathname]
+    () => buildBottomNavLinks(activeSessions, location.pathname, !!selectedRestaurant),
+    [activeSessions, location.pathname, selectedRestaurant]
   );
 
   const customerSession = getCustomerSession(activeSessions);

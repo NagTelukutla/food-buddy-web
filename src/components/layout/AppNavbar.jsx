@@ -14,6 +14,7 @@ import {
 import ProfileMenu from './ProfileMenu';
 import HeaderSearchPopup from './HeaderSearchPopup';
 import HeaderLocationPicker from './HeaderLocationPicker';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
 
 function NavLinkItem({ link, itemCount, onNavigate }) {
   if (link.isCart) {
@@ -64,6 +65,7 @@ function NavLinkItem({ link, itemCount, onNavigate }) {
 export default function AppNavbar() {
   const { itemCount } = useCart();
   const { activeSessions, logout } = useAuth();
+  const { selectedRestaurant } = useSelectedRestaurant();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -73,7 +75,7 @@ export default function AppNavbar() {
     location.pathname.startsWith('/platform') ||
     location.pathname.startsWith('/delivery');
   const staffOnlyHeader = isStaffOnlyHeader(activeSessions) && isStaffRoute;
-  const navLinks = useMemo(() => buildNavLinks(activeSessions), [activeSessions]);
+  const navLinks = useMemo(() => buildNavLinks(activeSessions, !!selectedRestaurant), [activeSessions, selectedRestaurant]);
   const showLogin = shouldShowLogin(activeSessions);
   const customerSession = getCustomerSession(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);

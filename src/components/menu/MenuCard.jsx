@@ -20,7 +20,7 @@ function MinusIcon({ className = 'h-4 w-4' }) {
   );
 }
 
-export default function MenuCard({ item }) {
+export default function MenuCard({ item, onAddToCart }) {
   const { items, addItem, updateQuantity } = useCart();
   const { activeSessions, loading: authLoading } = useAuth();
   const showAdd = canShowMenuAddButton(activeSessions);
@@ -32,8 +32,12 @@ export default function MenuCard({ item }) {
       return;
     }
     if (quantity === 0) {
-      addItem(item);
-      toast.success(`${item.name} added to cart`);
+      if (onAddToCart) {
+        onAddToCart(item);
+      } else {
+        addItem(item);
+        toast.success(`${item.name} added to cart`);
+      }
       return;
     }
     updateQuantity(item.id, quantity + 1);
