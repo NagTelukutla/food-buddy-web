@@ -12,9 +12,18 @@ export const CATEGORIES = [
   'Biryani',
   'Beverages',
   'Desserts',
+  'Chinese',
+  'Seafood',
+  'Fast Food',
 ];
 
 export const TAX_RATE = 0.05;
+
+/** Max distance (km) a restaurant can be from the delivery address to be shown. */
+export const SERVICE_RADIUS_KM = 15;
+
+/** Max straight-line distance (km) from driver to restaurant pickup for pending order visibility & accept. */
+export const DELIVERY_PARTNER_ORDER_RADIUS_KM = 30;
 
 export const CART_STORAGE_KEY = 'restaurant_cart';
 

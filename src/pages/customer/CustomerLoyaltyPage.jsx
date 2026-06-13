@@ -3,9 +3,12 @@ import { Link } from 'react-router-dom';
 import { customerApi } from '../../api/restaurantApi';
 import EmptyState from '../../components/common/EmptyState';
 import PageContainer from '../../components/common/PageContainer';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../../utils/restaurantPaths';
 
 export default function CustomerLoyaltyPage() {
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,8 +67,8 @@ export default function CustomerLoyaltyPage() {
               title="No transactions yet"
               message="Place an order to start earning loyalty points. Your earn and redeem history will show up here."
               action={
-                <Link to="/menu" className="btn-primary px-6 py-2 text-sm">
-                  Order &amp; earn points
+                <Link to={menuPath} className="btn-primary px-6 py-2 text-sm">
+                  {selectedRestaurant ? 'Order & earn points' : 'Discover Restaurants'}
                 </Link>
               }
             />

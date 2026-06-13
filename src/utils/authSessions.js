@@ -136,13 +136,6 @@ export function getTokenForPath(pathname) {
 
 export { getLoginPathForRoute as getLoginPath } from './routeGuard';
 
-export function getLoginRedirectMessage(pathname) {
-  if (pathname.startsWith('/delivery')) {
-    return 'Sign in as a delivery partner to accept and manage deliveries.';
-  }
-  return null;
-}
-
 export function listActiveSessions() {
   return Object.entries(getSessions())
     .filter(([, s]) => s?.access_token && s?.user)

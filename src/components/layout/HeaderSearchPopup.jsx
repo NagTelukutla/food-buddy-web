@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { menuApi } from '../../api/menuApi';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../../utils/restaurantPaths';
 import { formatCurrency } from '../../utils/format';
 
 export default function HeaderSearchPopup({ open, onClose }) {
+  const { selectedRestaurant } = useSelectedRestaurant();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
+  const restaurantId = selectedRestaurant?.id;
 
   useEffect(() => {
     if (!open) return;
@@ -41,7 +45,7 @@ export default function HeaderSearchPopup({ open, onClose }) {
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !restaurantId) return;
 
     const trimmed = query.trim();
     if (!trimmed) {
@@ -53,21 +57,23 @@ export default function HeaderSearchPopup({ open, onClose }) {
     setLoading(true);
     const timer = window.setTimeout(() => {
       menuApi
-        .list({ search: trimmed, available_only: false })
+        .list({ search: trimmed, available_only: false, restaurant_id: restaurantId })
         .then(({ data }) => setResults(data.items || []))
         .catch(() => setResults([]))
         .finally(() => setLoading(false));
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [open, query]);
+  }, [open, query, restaurantId]);
 
   const handleSelect = (searchTerm) => {
+    if (!restaurantId) return;
     onClose();
-    navigate(`/menu?q=${encodeURIComponent(searchTerm.trim())}`);
+    const basePath = getSelectedRestaurantMenuPath(selectedRestaurant);
+    navigate(`${basePath}?q=${encodeURIComponent(searchTerm.trim())}`);
   };
 
-  if (!open) return null;
+  if (!open || !restaurantId) return null;
 
   const trimmedQuery = query.trim();
   const showResults = trimmedQuery.length > 0;
@@ -94,7 +100,7 @@ export default function HeaderSearchPopup({ open, onClose }) {
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search dishes..."
+              placeholder={`Search ${selectedRestaurant.name}...`}
               className="input-field pl-3 pr-3"
               aria-label="Search dishes"
               autoComplete="off"

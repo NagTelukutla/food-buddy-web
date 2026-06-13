@@ -69,11 +69,17 @@ export default function TrackOrderPage() {
   const orderSubtotal = order?.items?.reduce((sum, item) => sum + item.line_total, 0) ?? 0;
   const orderTax =
     order?.tax ?? Math.max(0, Math.round((order?.total - orderSubtotal) * 100) / 100);
+  const restaurantName = order?.restaurant_name || liveTrack?.restaurant_name;
 
   return (
     <PageContainer>
       <PageTitle>Track Order</PageTitle>
-      <p className="-mt-2 mb-6 break-all font-mono text-sm text-stone-500">Order ID: {id}</p>
+      {restaurantName && (
+        <p className="-mt-2 text-sm font-semibold text-brand-700">{restaurantName}</p>
+      )}
+      <p className={`${restaurantName ? 'mt-1' : '-mt-2'} mb-6 break-all font-mono text-sm text-stone-500`}>
+        Order ID: {id}
+      </p>
 
       {loading && (
         <div className="flex justify-center py-12">
@@ -142,6 +148,12 @@ export default function TrackOrderPage() {
           <div className="card">
             <h3 className="mb-4 font-semibold">Order Details</h3>
             <dl className="mb-4 space-y-3 text-sm">
+              {restaurantName && (
+                <div className="flex flex-wrap justify-between gap-2">
+                  <dt className="text-stone-500">Restaurant</dt>
+                  <dd className="text-right font-medium">{restaurantName}</dd>
+                </div>
+              )}
               <div className="flex flex-wrap justify-between gap-2">
                 <dt className="text-stone-500">Customer</dt>
                 <dd className="text-right font-medium">{order.customer_name}</dd>

@@ -9,6 +9,7 @@ import MainLayout from '../layouts/MainLayout';
 import PlatformLayout from '../layouts/PlatformLayout';
 import RoleRoute from './RoleRoute';
 import { ROLES } from '../utils/roles';
+import ContactUsPage from '../pages/ContactUsPage';
 
 const AdminDashboardPage = lazy(() => import('../pages/admin/AdminDashboardPage'));
 const AdminMenuPage = lazy(() => import('../pages/admin/AdminMenuPage'));
@@ -47,6 +48,7 @@ export default function AppRoutes() {
         <Route element={<AppShell />}>
           <Route element={<MainLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="contact" element={<ContactUsPage />} />
             <Route path="menu" element={<MenuPage />} />
             <Route path="restaurant/:id" element={<RestaurantPage />} />
             <Route path="cart" element={<CartPage />} />

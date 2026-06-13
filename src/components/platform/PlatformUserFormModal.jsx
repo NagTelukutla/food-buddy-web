@@ -25,7 +25,6 @@ export default function PlatformUserFormModal({
   });
 
   const selectedRole = normalizeRole(watch('role'));
-  const selectedRestaurantId = watch('restaurant_id');
 
   useEffect(() => {
     if (!open) return;
@@ -113,21 +112,9 @@ export default function PlatformUserFormModal({
           </p>
         )}
         {selectedRole === ROLES.DRIVER && (
-          <div className="sm:col-span-2">
-            <label htmlFor="driver-restaurant" className="mb-1 block text-xs font-medium uppercase tracking-wide text-stone-500">
-              Restaurant *
-            </label>
-            <GlassSelect
-              id="driver-restaurant"
-              value={selectedRestaurantId ?? ''}
-              placeholder="Select restaurant"
-              options={[
-                { value: '', label: 'Select restaurant' },
-                ...restaurants.map((r) => ({ value: r.id, label: r.name })),
-              ]}
-              {...register('restaurant_id', { required: selectedRole === ROLES.DRIVER })}
-            />
-          </div>
+          <p className="sm:col-span-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+            Delivery partners join the shared network and see orders within the configured service radius of their GPS location.
+          </p>
         )}
         {editing && (
           <input

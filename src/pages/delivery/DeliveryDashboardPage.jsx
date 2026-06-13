@@ -1,13 +1,91 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { deliveryApi } from '../../api/restaurantApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import StaticMapPreview from '../../components/delivery/StaticMapPreview';
 import { useAuth } from '../../context/AuthContext';
-import { useDriverLocationTracker } from '../../hooks/useDriverLocation';
+import { useDriverBrowseLocation, useDriverLocationTracker } from '../../hooks/useDriverLocation';
+import { DELIVERY_PARTNER_ORDER_RADIUS_KM } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/format';
+import { formatDistanceKm } from '../../utils/geo';
+import { canNavigateTo, openNativeNavigation } from '../../utils/nativeMaps';
 import { getDriverAction, normalizeOrderStatus } from '../../utils/orderWorkflow';
 
-const LiveDeliveryMap = lazy(() => import('../../components/delivery/LiveDeliveryMap'));
+/** Which place the driver should head to next, based on delivery status. */
+function getNavTarget(assignment) {
+  const status = assignment.delivery_status;
+  if (status === 'accepted') {
+    return {
+      kind: 'restaurant',
+      label: 'Navigate to Restaurant',
+      lat: assignment.restaurant_lat,
+      lng: assignment.restaurant_lng,
+      address: assignment.restaurant_address || assignment.restaurant_name,
+    };
+  }
+  if (['out_for_delivery', 'picked_up', 'in_transit'].includes(status)) {
+    return {
+      kind: 'customer',
+      label: 'Navigate to Customer',
+      lat: assignment.delivery_lat,
+      lng: assignment.delivery_lng,
+      address: assignment.delivery_address,
+    };
+  }
+  return null;
+}
+
+function NavigateButton({ assignment }) {
+  const target = getNavTarget(assignment);
+  if (!target || !canNavigateTo(target)) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => openNativeNavigation(target)}
+      className="delivery-btn-primary mb-2.5 flex items-center justify-center gap-2"
+    >
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+      </svg>
+      {target.label}
+    </button>
+  );
+}
+
+function CustomerDeliveryCard({ assignment, compact = false, showPickup = false }) {
+  const textSize = compact ? 'text-xs' : 'text-sm';
+  const labelSize = compact ? 'text-[10px]' : 'text-xs';
+
+  return (
+    <div className={`delivery-glass-soft space-y-3 ${compact ? 'p-2.5' : 'p-3.5'}`}>
+      {showPickup && (assignment.restaurant_name || assignment.restaurant_address) && (
+        <div className={`${textSize} leading-snug`}>
+          <p className={`delivery-section-title mb-1 ${labelSize}`}>Order from</p>
+          {assignment.restaurant_name && (
+            <p className="font-semibold text-stone-900">{assignment.restaurant_name}</p>
+          )}
+          {assignment.restaurant_address && (
+            <p className="mt-0.5 text-stone-600">{assignment.restaurant_address}</p>
+          )}
+        </div>
+      )}
+
+      <div className={`${textSize} leading-snug ${showPickup ? 'border-t border-stone-200/60 pt-3' : ''}`}>
+        <p className={`delivery-section-title mb-1 ${labelSize}`}>Order to</p>
+        <p className="font-semibold text-stone-900">{assignment.customer_name}</p>
+        <a href={`tel:${assignment.phone}`} className="mt-0.5 inline-block font-medium text-brand-600">
+          {assignment.phone}
+        </a>
+        {assignment.delivery_address ? (
+          <p className="mt-1.5 text-stone-600">{assignment.delivery_address}</p>
+        ) : (
+          <p className="mt-1.5 italic text-stone-400">Address not provided</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const STATUS_META = {
   pending_acceptance: {
@@ -75,13 +153,43 @@ function PendingDot({ className = 'h-2.5 w-2.5', title = 'Pending to accept' }) 
   );
 }
 
-function DeliveryCard({ assignment, acting, onAccept, onUpdateStatus, index = 0 }) {
+function LiveLocationDot({ className = 'h-2.5 w-2.5', title = 'Live location sharing' }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 ${className}`}
+      aria-label={title}
+      title={title}
+    >
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+      <span className="relative inline-flex h-full w-full rounded-full bg-emerald-500" />
+    </span>
+  );
+}
+
+const LIVE_TRACKING_STATUSES = new Set(['accepted', 'out_for_delivery', 'picked_up', 'in_transit']);
+
+function DeliveryCard({
+  assignment,
+  acting,
+  onAccept,
+  onUpdateStatus,
+  index = 0,
+  compact = false,
+  liveSharing = false,
+  acceptDisabled = false,
+  acceptDisabledReason = '',
+}) {
   const orderStatus = normalizeOrderStatus(assignment.order_status);
   const driverAction = getDriverAction(assignment);
   const waitingForPrepared =
     assignment.delivery_status === 'accepted' && orderStatus === 'Driver Assigned';
   const isPendingAccept =
     assignment.delivery_status === 'pending_acceptance' && assignment.delivery_partner_id == null;
+  const navTarget = getNavTarget(assignment);
+  const hasNavTarget = !!navTarget && canNavigateTo(navTarget);
+  const showRestaurantDetails = !!(assignment.restaurant_name || assignment.restaurant_address);
+  const showStaticMap = compact && hasNavTarget;
+  const showNavigateButton = !compact && hasNavTarget;
 
   return (
     <article
@@ -93,7 +201,17 @@ function DeliveryCard({ assignment, acting, onAccept, onUpdateStatus, index = 0 
           <p className="flex items-center gap-2 font-mono text-sm font-bold tracking-wide text-stone-900">
             {assignment.order_id}
             {isPendingAccept && <PendingDot />}
+            {liveSharing && <LiveLocationDot />}
           </p>
+          {assignment.restaurant_name && !isPendingAccept && (
+            <p className="mt-0.5 text-sm font-semibold text-brand-700">{assignment.restaurant_name}</p>
+          )}
+          {isPendingAccept && assignment.distance_km != null && (
+            <p className="mt-0.5 text-xs font-medium text-stone-600">
+              {formatDistanceKm(assignment.distance_km)} from pickup
+              <span className="text-stone-400"> (approx.)</span>
+            </p>
+          )}
           <p className="mt-0.5 text-xs text-stone-500">{formatDate(assignment.created_at)}</p>
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
@@ -105,70 +223,114 @@ function DeliveryCard({ assignment, acting, onAccept, onUpdateStatus, index = 0 
       </div>
 
       <div className="space-y-1.5 px-4 pb-4">
-        <InfoRow
-          label="Customer"
-          icon={
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          }
-        >
-          <p className="font-semibold leading-tight text-stone-900">{assignment.customer_name}</p>
-          <a href={`tel:${assignment.phone}`} className="inline-block font-medium leading-tight text-brand-600">
-            {assignment.phone}
-          </a>
-        </InfoRow>
+        {showStaticMap && (
+          <StaticMapPreview
+            latitude={navTarget.lat}
+            longitude={navTarget.lng}
+            address={navTarget.address}
+            label={navTarget.label}
+            className="w-full"
+            height="8.5rem"
+          />
+        )}
 
-        <InfoRow
-          label="Delivery address"
-          icon={
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          }
-        >
-          {assignment.delivery_address ? (
-            assignment.delivery_address
-          ) : (
-            <span className="italic text-stone-400">Address not provided</span>
-          )}
-        </InfoRow>
+        {(compact || isPendingAccept) ? (
+          <CustomerDeliveryCard
+            assignment={assignment}
+            compact={compact}
+            showPickup={showRestaurantDetails}
+          />
+        ) : (
+          <>
+            {showRestaurantDetails && (
+              <InfoRow
+                label="Restaurant"
+                icon={
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-6 9 6v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 22V12h6v10" />
+                  </svg>
+                }
+              >
+                {assignment.restaurant_name && (
+                  <p className="font-semibold leading-tight text-stone-900">{assignment.restaurant_name}</p>
+                )}
+                {assignment.restaurant_address && (
+                  <p className="leading-tight">{assignment.restaurant_address}</p>
+                )}
+              </InfoRow>
+            )}
 
-        <div className="delivery-glass-soft p-3.5">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="delivery-section-title">Order items</p>
-            <p className="text-sm font-bold text-brand-700">{formatCurrency(assignment.total)}</p>
+            <InfoRow
+              label="Customer"
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              }
+            >
+              <p className="font-semibold leading-tight text-stone-900">{assignment.customer_name}</p>
+              <a href={`tel:${assignment.phone}`} className="inline-block font-medium leading-tight text-brand-600">
+                {assignment.phone}
+              </a>
+            </InfoRow>
+
+            <InfoRow
+              label="Delivery address"
+              icon={
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              }
+            >
+              {assignment.delivery_address ? (
+                assignment.delivery_address
+              ) : (
+                <span className="italic text-stone-400">Address not provided</span>
+              )}
+            </InfoRow>
+          </>
+        )}
+
+        <div className={`delivery-glass-soft ${compact ? 'p-2.5' : 'p-3.5'}`}>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className={`delivery-section-title ${compact ? 'text-[10px]' : ''}`}>Order items</p>
+            <p className={`font-bold text-brand-700 ${compact ? 'text-xs' : 'text-sm'}`}>
+              {formatCurrency(assignment.total)}
+            </p>
           </div>
-          <ul className="divide-y divide-stone-200/70 text-sm">
+          <ul className={`divide-y divide-stone-200/70 ${compact ? 'text-xs' : 'text-sm'}`}>
             {assignment.items?.map((item, idx) => (
-              <li key={idx} className="flex justify-between py-2 first:pt-0 last:pb-0">
+              <li key={idx} className={`flex justify-between ${compact ? 'py-1.5' : 'py-2'} first:pt-0 last:pb-0`}>
                 <span className="text-stone-700">{item.name} × {item.quantity}</span>
                 <span className="font-medium text-stone-900">{formatCurrency(item.line_total)}</span>
               </li>
             ))}
           </ul>
           {assignment.notes && (
-            <p className="mt-3 rounded-xl border border-amber-200/60 bg-amber-50/80 px-3 py-2 text-xs leading-relaxed text-amber-900">
+            <p className={`mt-2 rounded-xl border border-amber-200/60 bg-amber-50/80 px-2.5 py-1.5 leading-relaxed text-amber-900 ${compact ? 'text-[11px]' : 'text-xs'}`}>
               {assignment.notes}
             </p>
           )}
         </div>
       </div>
 
-      {(waitingForPrepared || driverAction) && (
+      {(waitingForPrepared || driverAction || showNavigateButton) && (
         <div className="border-t border-white/50 bg-white/40 px-4 py-3 backdrop-blur-sm">
           {waitingForPrepared && (
             <p className="mb-2.5 rounded-xl border border-amber-200/50 bg-amber-50/70 px-3 py-2 text-xs leading-relaxed text-amber-900">
               Accepted — head to the restaurant and wait until the order is marked Prepared.
             </p>
           )}
+          {showNavigateButton && <NavigateButton assignment={assignment} />}
           {driverAction?.type === 'accept' && (
             <button
               type="button"
-              disabled={acting === assignment.order_id}
+              disabled={acting === assignment.order_id || acceptDisabled}
+              title={acceptDisabled ? acceptDisabledReason : undefined}
               onClick={() => onAccept(assignment.order_id)}
-              className="delivery-btn-primary"
+              className="delivery-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
               {acting === assignment.order_id ? 'Accepting…' : driverAction.label}
             </button>
@@ -197,9 +359,9 @@ function StatPill({ label, value, tone = 'default' }) {
   };
 
   return (
-    <div className="delivery-stat-pill min-w-0 flex-1">
-      <p className="delivery-section-title">{label}</p>
-      <p className={`mt-1.5 text-2xl font-bold tracking-tight ${tones[tone]}`}>{value}</p>
+    <div className="delivery-stat-pill min-w-0 flex-1 !rounded-xl !px-2.5 !py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-stone-500">{label}</p>
+      <p className={`mt-0.5 text-lg font-bold leading-none tracking-tight ${tones[tone]}`}>{value}</p>
     </div>
   );
 }
@@ -224,11 +386,18 @@ export default function DeliveryDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [acting, setActing] = useState(null);
+  const refreshSpinTimerRef = useRef(null);
+  const browseCoordsRef = useRef(null);
 
-  const load = useCallback((silent = false) => {
+  const REFRESH_SPIN_MS = 1500;
+
+  const load = useCallback((silent = false, coords = browseCoordsRef.current) => {
     if (!silent) setLoading(true);
+    const params = coords
+      ? { latitude: coords.latitude, longitude: coords.longitude }
+      : undefined;
     return deliveryApi
-      .assignments()
+      .assignments(params)
       .then(({ data }) => setAssignments(data.items || []))
       .catch((err) => {
         if (!silent) toast.error(err.response?.data?.detail || 'Failed to load deliveries');
@@ -238,29 +407,68 @@ export default function DeliveryDashboardPage() {
       });
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const handleBrowseLocationChange = useCallback((coords) => {
+    browseCoordsRef.current = coords;
+    load(true, coords);
+  }, [load]);
+
+  const {
+    coords: browseCoords,
+    error: browseLocationError,
+    denied: locationDenied,
+  } = useDriverBrowseLocation({
+    enabled: true,
+    onLocationChange: handleBrowseLocationChange,
+  });
 
   useEffect(() => {
-    const interval = setInterval(() => load(true), 10000);
+    browseCoordsRef.current = browseCoords;
+  }, [browseCoords]);
+
+  useEffect(() => { load(false); }, [load]);
+
+  useEffect(() => {
+    const interval = setInterval(() => load(true, browseCoordsRef.current), 12000);
     return () => clearInterval(interval);
   }, [load]);
 
+  useEffect(() => () => {
+    if (refreshSpinTimerRef.current) clearTimeout(refreshSpinTimerRef.current);
+  }, []);
+
   const handleRefresh = () => {
+    const startedAt = Date.now();
     setRefreshing(true);
+    const params = browseCoordsRef.current
+      ? {
+          latitude: browseCoordsRef.current.latitude,
+          longitude: browseCoordsRef.current.longitude,
+        }
+      : undefined;
+
     deliveryApi
-      .assignments()
+      .assignments(params)
       .then(({ data }) => setAssignments(data.items || []))
       .catch((err) => toast.error(err.response?.data?.detail || 'Failed to refresh deliveries'))
-      .finally(() => setRefreshing(false));
+      .finally(() => {
+        const remaining = Math.max(0, REFRESH_SPIN_MS - (Date.now() - startedAt));
+        if (refreshSpinTimerRef.current) clearTimeout(refreshSpinTimerRef.current);
+        refreshSpinTimerRef.current = setTimeout(() => {
+          setRefreshing(false);
+          refreshSpinTimerRef.current = null;
+        }, remaining);
+      });
   };
 
   const availableOrders = useMemo(
-    () => assignments.filter(
-      (a) =>
-        a.delivery_status === 'pending_acceptance'
-        && a.delivery_partner_id == null
-        && normalizeOrderStatus(a.order_status) === 'Accepted',
-    ),
+    () => assignments
+      .filter(
+        (a) =>
+          a.delivery_status === 'pending_acceptance'
+          && a.delivery_partner_id == null
+          && normalizeOrderStatus(a.order_status) === 'Accepted',
+      )
+      .sort((a, b) => (a.distance_km ?? Infinity) - (b.distance_km ?? Infinity)),
     [assignments],
   );
   const myDeliveries = useMemo(
@@ -270,27 +478,12 @@ export default function DeliveryDashboardPage() {
     [assignments],
   );
 
-  const { sharing, activeCount, error: locationError } = useDriverLocationTracker(assignments);
-  const primaryActive = useMemo(
-    () => assignments.find((a) => ['accepted', 'out_for_delivery'].includes(a.delivery_status)),
-    [assignments],
-  );
-  const [liveTrack, setLiveTrack] = useState(null);
+  // Driver GPS is still shared so customers can follow the order on their
+  // tracking screen — but the driver app itself hands navigation off to the
+  // native Google Maps app (no embedded map / Directions API cost here).
+  const { sharing, error: locationError } = useDriverLocationTracker(assignments);
 
   const firstName = user?.full_name?.split(' ')[0] || 'Driver';
-
-  useEffect(() => {
-    if (!primaryActive) {
-      setLiveTrack(null);
-      return undefined;
-    }
-    const fetchTrack = () => {
-      deliveryApi.liveTrack(primaryActive.order_id).then(({ data }) => setLiveTrack(data)).catch(() => {});
-    };
-    fetchTrack();
-    const interval = setInterval(fetchTrack, 5000);
-    return () => clearInterval(interval);
-  }, [primaryActive?.order_id, primaryActive?.delivery_status]);
 
   const runAction = async (orderId, action) => {
     setActing(orderId);
@@ -306,7 +499,21 @@ export default function DeliveryDashboardPage() {
   };
 
   const acceptOrder = (orderId) =>
-    runAction(orderId, () => deliveryApi.accept(orderId));
+    runAction(orderId, () => {
+      const coords = browseCoordsRef.current;
+      return deliveryApi.accept(
+        orderId,
+        coords ? { latitude: coords.latitude, longitude: coords.longitude } : {},
+      );
+    });
+
+  const pendingBlocked = locationDenied || (!browseCoords && !!browseLocationError);
+  const acceptDisabledReason = pendingBlocked
+    ? 'Enable location to accept orders'
+    : `Outside your ${DELIVERY_PARTNER_ORDER_RADIUS_KM} km service area`;
+
+  const isOutsideRadius = (assignment) =>
+    assignment.distance_km != null && assignment.distance_km > DELIVERY_PARTNER_ORDER_RADIUS_KM;
 
   const updateStatus = (orderId, status) =>
     runAction(orderId, () => deliveryApi.updateStatus(orderId, { delivery_status: status }));
@@ -324,7 +531,7 @@ export default function DeliveryDashboardPage() {
               <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-stone-900 sm:text-3xl">
                 Hello, {firstName}
               </h1>
-              <p className="mt-1 text-sm text-stone-500">Manage routes, accept orders, and stay on track.</p>
+              <p className="mt-1 text-xs text-stone-500">Manage routes, accept orders, and stay on track.</p>
             </div>
             <button
               type="button"
@@ -350,7 +557,7 @@ export default function DeliveryDashboardPage() {
             </button>
           </div>
 
-          <div className="mt-4 flex gap-2.5">
+          <div className="mt-3 flex gap-2">
             <StatPill label="Available" value={availableOrders.length} tone="brand" />
             <StatPill label="Active" value={myDeliveries.length} tone="success" />
             <StatPill label="Queue" value={assignments.length} />
@@ -358,13 +565,17 @@ export default function DeliveryDashboardPage() {
         </div>
       </header>
 
-      {sharing && (
-        <div className="delivery-rise delivery-glass-soft mb-4 flex items-center gap-3 border-emerald-200/50 px-4 py-3 text-sm text-emerald-800">
-          <span className="relative flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
-          </span>
-          Live location ON · {activeCount} active route{activeCount !== 1 ? 's' : ''}
+      {(locationDenied || browseLocationError) && (
+        <div className="delivery-rise delivery-glass-soft mb-4 border-amber-200/50 px-4 py-3 text-sm text-amber-900">
+          {locationDenied
+            ? 'Location access is required to see and accept nearby delivery orders. Enable GPS in your browser settings.'
+            : browseLocationError}
+        </div>
+      )}
+
+      {!pendingBlocked && browseCoords && (
+        <div className="delivery-rise delivery-glass-soft mb-4 px-4 py-2.5 text-sm text-stone-600">
+          Showing orders within <span className="font-semibold text-stone-800">{DELIVERY_PARTNER_ORDER_RADIUS_KM} km</span> of you
         </div>
       )}
 
@@ -372,44 +583,6 @@ export default function DeliveryDashboardPage() {
         <div className="delivery-rise delivery-glass-soft mb-4 border-amber-200/50 px-4 py-3 text-sm text-amber-900">
           Enable location access so customers can follow your delivery on the map.
         </div>
-      )}
-
-      {liveTrack?.live_tracking_enabled && (
-        <section className="delivery-rise delivery-glass mb-5 overflow-hidden !p-0">
-          <div className="flex items-center justify-between border-b border-white/40 bg-white/30 px-4 py-3 backdrop-blur-md">
-            <div>
-              <h2 className="font-semibold text-stone-900">Live navigation</h2>
-              <p className="text-xs text-stone-500">Road route · auto-updates as you move</p>
-            </div>
-            <span className="rounded-full border border-violet-200/70 bg-violet-50/80 px-2.5 py-1 text-[11px] font-semibold text-violet-700">
-              Tracking
-            </span>
-          </div>
-          <div className="bg-white/50 p-2.5">
-            <div className="overflow-hidden rounded-[1.25rem] ring-1 ring-black/5">
-              <Suspense
-                fallback={
-                  <div className="flex min-h-[220px] items-center justify-center bg-white/50">
-                    <LoadingSpinner />
-                  </div>
-                }
-              >
-                <LiveDeliveryMap
-                  restaurant={liveTrack.restaurant}
-                  destination={liveTrack.destination}
-                  driver={liveTrack.driver}
-                  deliveryStatus={liveTrack.delivery_status}
-                  deliveryAddress={liveTrack.delivery_address}
-                  height="360px"
-                  followDriver
-                  navigationMode
-                  framed
-                  statusLabel="Order is on the way"
-                />
-              </Suspense>
-            </div>
-          </div>
-        </section>
       )}
 
       {loading ? (
@@ -426,10 +599,15 @@ export default function DeliveryDashboardPage() {
                   <h2 className="text-lg font-bold text-stone-900 sm:text-xl">Available orders</h2>
                 </div>
               </div>
-              {availableOrders.length === 0 ? (
+              {pendingBlocked ? (
+                <PremiumEmpty
+                  title="Location required"
+                  message="Enable GPS to see delivery orders near you. Active deliveries below will still appear once assigned."
+                />
+              ) : availableOrders.length === 0 ? (
                 <PremiumEmpty
                   title="No orders right now"
-                  message="New delivery requests appear here once the restaurant admin accepts an order. Pull refresh to check again."
+                  message={`No delivery requests within ${DELIVERY_PARTNER_ORDER_RADIUS_KM} km. Pull refresh to check again.`}
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -441,6 +619,8 @@ export default function DeliveryDashboardPage() {
                       onAccept={acceptOrder}
                       onUpdateStatus={updateStatus}
                       index={index}
+                      acceptDisabled={pendingBlocked || isOutsideRadius(a)}
+                      acceptDisabledReason={acceptDisabledReason}
                     />
                   ))}
                 </div>
@@ -463,6 +643,8 @@ export default function DeliveryDashboardPage() {
                     onAccept={acceptOrder}
                     onUpdateStatus={updateStatus}
                     index={index}
+                    compact
+                    liveSharing={sharing && LIVE_TRACKING_STATUSES.has(a.delivery_status)}
                   />
                 ))}
               </div>

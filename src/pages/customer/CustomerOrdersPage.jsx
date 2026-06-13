@@ -7,8 +7,12 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PageContainer from '../../components/common/PageContainer';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { filterOrdersByPhone, formatPhoneDisplay } from '../../utils/phone';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../../utils/restaurantPaths';
 
 export default function CustomerOrdersPage() {
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const [orders, setOrders] = useState([]);
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,8 +68,8 @@ export default function CustomerOrdersPage() {
             title={`No orders for ${phoneLabel}`}
             message="Place a new order using the same mobile number on your profile to see it in this list."
             action={
-              <Link to="/menu" className="btn-primary px-6 py-2 text-sm">
-                Browse Menu
+              <Link to={menuPath} className="btn-primary px-6 py-2 text-sm">
+                {selectedRestaurant ? 'Browse Menu' : 'Discover Restaurants'}
               </Link>
             }
           />

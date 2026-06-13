@@ -4,7 +4,6 @@ import { deliveryApi } from '../../api/restaurantApi';
 import { AdminPageHeader } from '../../layouts/AdminLayout';
 import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { useRestaurantId } from '../../hooks/useRestaurantId';
 
 const VEHICLE_OPTIONS = [
   { value: 'bike', label: 'Bike' },
@@ -13,22 +12,19 @@ const VEHICLE_OPTIONS = [
 ];
 
 export default function AdminDeliveryPage() {
-  const restaurantId = useRestaurantId();
   const [partners, setPartners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: '', phone: '', vehicle_type: 'bike' });
 
   const load = () => {
-    if (!restaurantId) return;
-    deliveryApi.partners(restaurantId).then(({ data }) => setPartners(data)).finally(() => setLoading(false));
+    deliveryApi.partners().then(({ data }) => setPartners(data)).finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [restaurantId]);
+  useEffect(() => { load(); }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!restaurantId) return;
-    await deliveryApi.createPartner({ ...form, restaurant_id: restaurantId });
+    await deliveryApi.createPartner(form);
     setForm({ name: '', phone: '', vehicle_type: 'bike' });
     load();
   };
@@ -36,6 +32,9 @@ export default function AdminDeliveryPage() {
   return (
     <div>
       <AdminPageHeader title="Delivery Partners" />
+      <p className="mb-4 text-sm text-stone-500">
+        Delivery partners belong to the shared network and accept orders near their current location.
+      </p>
       <form onSubmit={handleCreate} className="card mb-6 grid gap-3 p-4 sm:grid-cols-4">
         <input className="input-field" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <input className="input-field" placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />

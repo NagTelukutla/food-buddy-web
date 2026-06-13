@@ -1,8 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import PageContainer from '../components/common/PageContainer';
+import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../utils/restaurantPaths';
 
 export default function PaymentFailedPage() {
   const location = useLocation();
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const orderId = location.state?.orderId;
 
   return (
@@ -20,7 +24,7 @@ export default function PaymentFailedPage() {
         <Link to="/cart" className="btn-primary py-3">
           Back to Cart
         </Link>
-        <Link to="/menu" className="btn-secondary py-3">
+        <Link to={menuPath} className="btn-secondary py-3">
           Continue Shopping
         </Link>
       </div>

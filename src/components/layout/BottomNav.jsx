@@ -41,7 +41,7 @@ export default function BottomNav() {
   const location = useLocation();
 
   const bottomLinks = useMemo(
-    () => buildBottomNavLinks(activeSessions, location.pathname, !!selectedRestaurant),
+    () => buildBottomNavLinks(activeSessions, location.pathname, selectedRestaurant),
     [activeSessions, location.pathname, selectedRestaurant]
   );
 

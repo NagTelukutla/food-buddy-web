@@ -81,11 +81,6 @@ export function DeliveryLocationProvider({ children }) {
   }, [setDeliveryLocation]);
 
   useEffect(() => {
-    if (deliveryLocation) return;
-    detectCurrentLocation({ forceFresh: true });
-  }, [deliveryLocation, detectCurrentLocation]);
-
-  useEffect(() => {
     if (!customerSignedIn) {
       setSavedAddresses([]);
       return;
@@ -112,6 +107,7 @@ export function DeliveryLocationProvider({ children }) {
       detecting,
       permissionDenied,
       savedAddresses,
+      needsLocation: !deliveryLocation,
       setDeliveryLocation,
       detectCurrentLocation,
       selectSavedAddress: (addr) => {

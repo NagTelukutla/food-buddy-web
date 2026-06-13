@@ -1,9 +1,13 @@
 import { Link, useLocation, Navigate } from 'react-router-dom';
 import PageContainer from '../components/common/PageContainer';
+import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../utils/restaurantPaths';
 import { formatCurrency, formatDate } from '../utils/format';
 
 export default function OrderSuccessPage() {
   const location = useLocation();
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const order = location.state?.order;
   const payment = location.state?.payment;
 
@@ -61,7 +65,7 @@ export default function OrderSuccessPage() {
         <Link to={`/track-order/${order.order_id}`} className="btn-primary w-full py-3 sm:w-auto">
           Track Order
         </Link>
-        <Link to="/menu" className="btn-secondary w-full py-3 sm:w-auto">
+        <Link to={menuPath} className="btn-secondary w-full py-3 sm:w-auto">
           Continue Shopping
         </Link>
       </div>

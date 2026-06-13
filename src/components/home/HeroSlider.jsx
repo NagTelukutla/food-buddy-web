@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const DEFAULT_SLIDES = [
   {
@@ -35,7 +36,8 @@ const DEFAULT_SLIDES = [
   },
 ];
 
-export default function HeroSlider({ settings }) {
+export default function HeroSlider({ settings, menuLink = '/', showActions = false }) {
+  const resolveLink = (link) => (link === '/menu' ? menuLink : link || menuLink);
   const slides =
     settings?.hero_slides?.length > 0
       ? settings.hero_slides.map((slide, index) => ({
@@ -68,47 +70,60 @@ export default function HeroSlider({ settings }) {
   }, [paused, slides.length]);
 
   const current = slides[active];
+  const heroAccent = slides[0]?.accent || DEFAULT_SLIDES[0].accent;
 
   return (
     <section
-      className="relative overflow-hidden text-white"
+      className="restaurant-hero-slider relative overflow-hidden text-white"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       aria-roledescription="carousel"
       aria-label="Restaurant highlights"
     >
-      <div
-        className={`absolute inset-0 bg-gradient-to-br transition-all duration-700 ${current.accent}`}
-      />
-      <div className="absolute inset-0 bg-black/35" />
+      <div className={`absolute inset-0 bg-gradient-to-br ${heroAccent}`} />
+      <div className="restaurant-hero-slider-scrim absolute inset-0 bg-black/30" />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 md:py-14">
-        <div className="grid items-center gap-5 md:grid-cols-2 md:gap-8">
+      <div className="relative mx-auto max-w-7xl px-4 pb-3 pt-8 sm:px-6 sm:pb-4 sm:pt-10">
+        <div className="grid items-center gap-4 md:grid-cols-2 md:gap-6">
           <div className="max-w-xl">
-            <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-brand-200 sm:text-sm">
+            <p className="mb-1 text-xs font-medium uppercase tracking-wider text-brand-200 sm:text-sm">
               {settings?.tagline}
             </p>
-            <h1
+            <h2
               key={current.title}
-              className="animate-fade-in font-display text-xl font-bold leading-tight sm:text-3xl md:text-4xl"
+              className="animate-fade-in font-display text-xl font-bold leading-tight sm:text-2xl md:text-3xl"
             >
               {current.title}
-            </h1>
+            </h2>
             <p
               key={current.subtitle}
-              className="animate-fade-in mt-2 text-sm text-brand-50 sm:text-base"
+              className="animate-fade-in mt-1.5 text-sm text-brand-50 sm:text-base"
             >
               {current.subtitle}
             </p>
+            {showActions && (
+              <div
+                key={`${current.cta_label}-actions`}
+                className="animate-fade-in mt-5 flex flex-wrap items-center gap-3"
+              >
+                <Link to={resolveLink(current.cta_link)} className="btn-order-now-hero">
+                  <span className="btn-order-now-hero-shine" aria-hidden />
+                  {current.cta_label || 'Order Now'}
+                </Link>
+                <Link to={menuLink} className="btn-hero-outline px-6 py-3 text-sm sm:text-base">
+                  View Menu
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="relative mx-auto w-full max-w-md md:max-w-none">
-            <div className="overflow-hidden rounded-xl border border-white/20 shadow-2xl ring-1 ring-black/10">
+            <div className="overflow-hidden rounded-2xl border border-white/20 shadow-2xl ring-1 ring-black/10">
               <img
                 key={current.image}
                 src={current.image}
                 alt=""
-                className="animate-fade-in h-[260px] w-full object-cover sm:h-[276px] md:h-[292px] lg:h-[308px]"
+                className="animate-fade-in h-[200px] w-full object-cover sm:h-[220px] md:h-[240px]"
               />
             </div>
           </div>
@@ -116,14 +131,14 @@ export default function HeroSlider({ settings }) {
 
         {slides.length > 1 && (
           <>
-            <div className="mt-5 flex items-center justify-center gap-2">
+            <div className="mt-3 flex items-center justify-center gap-2 pb-1">
               {slides.map((slide, index) => (
                 <button
                   key={`${slide.title}-${index}`}
                   type="button"
                   onClick={() => goTo(index)}
-                  className={`h-2 rounded-full transition-all ${
-                    index === active ? 'w-7 bg-white' : 'w-2 bg-white/40 hover:bg-white/60'
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === active ? 'w-6 bg-white' : 'w-1.5 bg-white/45 hover:bg-white/65'
                   }`}
                   aria-label={`Go to slide ${index + 1}`}
                 />

@@ -4,7 +4,25 @@ import { useCart } from '../../context/CartContext';
 import { canShowMenuAddButton } from '../../utils/roles';
 import { formatCurrency } from '../../utils/format';
 
-function PlusIcon({ className = 'h-4 w-4' }) {
+const CATEGORY_EMOJI = {
+  Biryani: '🍛',
+  Desserts: '🍰',
+  Starters: '🥗',
+  Soups: '🍲',
+  'Main Course': '🍽️',
+  Beverages: '🥤',
+};
+
+const CATEGORY_GRADIENT = {
+  Biryani: 'premium-menu-bg-biryani',
+  Desserts: 'premium-menu-bg-dessert',
+  Starters: 'premium-menu-bg-starter',
+  Soups: 'premium-menu-bg-soup',
+  'Main Course': 'premium-menu-bg-main',
+  Beverages: 'premium-menu-bg-drink',
+};
+
+function PlusIcon({ className = 'h-3 w-3' }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -12,12 +30,20 @@ function PlusIcon({ className = 'h-4 w-4' }) {
   );
 }
 
-function MinusIcon({ className = 'h-4 w-4' }) {
+function MinusIcon({ className = 'h-3 w-3' }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
     </svg>
   );
+}
+
+function dishEmoji(category) {
+  return CATEGORY_EMOJI[category] || '🍽️';
+}
+
+function dishGradient(category) {
+  return CATEGORY_GRADIENT[category] || 'premium-menu-bg-main';
 }
 
 export default function MenuCard({ item, onAddToCart }) {
@@ -48,57 +74,80 @@ export default function MenuCard({ item, onAddToCart }) {
   };
 
   return (
-    <article className="card flex flex-col transition hover:shadow-lg">
-      <div className="glass-menu-thumb">
-        {item.category === 'Biryani' ? '🍛' : item.category === 'Desserts' ? '🍰' : '🍽️'}
-      </div>
-      <div className="mb-1 flex items-start justify-between gap-2">
-        <h3 className="font-semibold text-stone-900">{item.name}</h3>
-        {!item.available && (
-          <span className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700">Unavailable</span>
+    <article className="premium-menu-card group">
+      <div className="premium-menu-visual">
+        <div className={`premium-menu-bg ${dishGradient(item.category)}`} aria-hidden />
+        <span className="premium-menu-emoji" aria-hidden>
+          {dishEmoji(item.category)}
+        </span>
+        <div className="premium-menu-visual-scrim" aria-hidden />
+
+        {item.category && (
+          <span className="premium-menu-chip premium-menu-chip--category">
+            {item.category}
+          </span>
         )}
+
+        {!item.available && (
+          <span className="premium-menu-chip premium-menu-chip--warn">
+            Unavailable
+          </span>
+        )}
+
+        <div className="premium-menu-visual-overlay">
+          <h3 className="premium-menu-name">{item.name}</h3>
+        </div>
       </div>
-      <p className="mb-2 flex-1 text-sm text-stone-600 line-clamp-2">{item.description}</p>
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-lg font-bold text-brand-700">{formatCurrency(item.price)}</span>
-        {authLoading && !showAdd ? (
-          <span className="inline-block h-8 w-20 animate-pulse rounded-xl bg-white/50" aria-hidden />
-        ) : showAdd ? (
-          quantity > 0 ? (
-            <div className="menu-qty-control" aria-label={`${item.name} quantity`}>
-              <button
-                type="button"
-                onClick={handleDecrease}
-                className="menu-qty-btn"
-                aria-label={`Decrease ${item.name} quantity`}
-              >
-                <MinusIcon />
-              </button>
-              <span className="menu-qty-count">{quantity}</span>
+
+      <div className="premium-menu-body">
+        {item.description && (
+          <p className="premium-menu-desc line-clamp-2">{item.description}</p>
+        )}
+
+        <div className="premium-menu-footer">
+          <span className="premium-menu-glass-pill">
+            {formatCurrency(item.price)}
+          </span>
+
+          {authLoading && !showAdd ? (
+            <span className="inline-block h-7 w-16 animate-pulse rounded-xl bg-white/40" aria-hidden />
+          ) : showAdd ? (
+            quantity > 0 ? (
+              <div className="menu-qty-control" aria-label={`${item.name} quantity`}>
+                <button
+                  type="button"
+                  onClick={handleDecrease}
+                  className="menu-qty-btn"
+                  aria-label={`Decrease ${item.name} quantity`}
+                >
+                  <MinusIcon />
+                </button>
+                <span className="menu-qty-count">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={handleIncrease}
+                  disabled={!item.available}
+                  className="menu-qty-btn"
+                  aria-label={`Increase ${item.name} quantity`}
+                >
+                  <PlusIcon />
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={handleIncrease}
                 disabled={!item.available}
-                className="menu-qty-btn"
-                aria-label={`Increase ${item.name} quantity`}
+                className="premium-add-btn"
+                aria-label={`Add ${item.name} to cart`}
               >
                 <PlusIcon />
               </button>
-            </div>
+            )
           ) : (
-            <button
-              type="button"
-              onClick={handleIncrease}
-              disabled={!item.available}
-              className="menu-add-btn"
-            >
-              <PlusIcon />
-              Add
-            </button>
-          )
-        ) : (
-          <span className="text-xs text-stone-400">View only</span>
-        )}
+            <span className="text-xs text-stone-400">View only</span>
+          )}
+        </div>
       </div>
     </article>
   );

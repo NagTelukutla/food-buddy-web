@@ -507,7 +507,7 @@ export function loadRecentSearches() {
   try {
     const raw = localStorage.getItem(RECENT_LOCATION_SEARCHES_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.slice(0, 5) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 1) : [];
   } catch {
     return [];
   }
@@ -516,6 +516,6 @@ export function loadRecentSearches() {
 export function saveRecentSearch(entry) {
   if (!entry?.label) return;
   const existing = loadRecentSearches().filter((item) => item.label !== entry.label);
-  const next = [entry, ...existing].slice(0, 5);
+  const next = [entry, ...existing].slice(0, 1);
   localStorage.setItem(RECENT_LOCATION_SEARCHES_KEY, JSON.stringify(next));
 }

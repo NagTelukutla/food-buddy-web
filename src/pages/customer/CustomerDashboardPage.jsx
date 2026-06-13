@@ -6,12 +6,14 @@ import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PageContainer from '../../components/common/PageContainer';
 import StatusBadge from '../../components/common/StatusBadge';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../../utils/restaurantPaths';
 import { formatCurrency, formatDate } from '../../utils/format';
 import { filterOrdersByPhone, formatPhoneDisplay } from '../../utils/phone';
 
 const quickActions = [
   {
-    to: '/menu',
+    id: 'menu',
     label: 'Browse Menu',
     desc: 'Order your favourites',
     icon: (
@@ -67,6 +69,8 @@ function getInitials(name = '') {
 }
 
 export default function CustomerDashboardPage() {
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,10 +121,10 @@ export default function CustomerDashboardPage() {
             </div>
           </div>
           <Link
-            to="/menu"
+            to={menuPath}
             className="btn-hero-primary shrink-0 px-5 py-2.5 text-sm"
           >
-            Order Now
+            {selectedRestaurant ? 'Order Now' : 'Discover Restaurants'}
           </Link>
         </div>
       </section>
@@ -163,8 +167,8 @@ export default function CustomerDashboardPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {quickActions.map((action) => (
             <Link
-              key={action.to}
-              to={action.to}
+              key={action.id || action.to}
+              to={action.id === 'menu' ? menuPath : action.to}
               className="group card flex items-start gap-4 p-5 transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
             >
               <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${action.color} text-white shadow-sm`}>
@@ -197,8 +201,8 @@ export default function CustomerDashboardPage() {
             title="No orders yet"
             message="Start exploring our menu and place your first order."
             action={
-              <Link to="/menu" className="btn-primary px-6 py-2 text-sm">
-                Browse Menu
+              <Link to={menuPath} className="btn-primary px-6 py-2 text-sm">
+                {selectedRestaurant ? 'Browse Menu' : 'Discover Restaurants'}
               </Link>
             }
           />

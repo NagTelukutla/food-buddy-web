@@ -1,70 +1,92 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { orderApi } from '../../api/orderApi';
+import AdminOrderAction from '../../components/admin/AdminOrderAction';
+import AdminOrderDetailsContent from '../../components/admin/AdminOrderDetailsContent';
 import GlassSelect from '../../components/common/GlassSelect';
 import EmptyState from '../../components/common/EmptyState';
 import ErrorState from '../../components/common/ErrorState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ModalShell from '../../components/common/ModalShell';
 import StatusBadge from '../../components/common/StatusBadge';
+import useInfiniteScroll from '../../hooks/useInfiniteScroll';
 import { AdminPageHeader } from '../../layouts/AdminLayout';
 import { ORDER_STATUSES } from '../../utils/constants';
 import { formatCurrency, formatDate } from '../../utils/format';
-import { getAdminStatusButton, normalizeOrderStatus } from '../../utils/orderWorkflow';
+import { normalizeOrderStatus } from '../../utils/orderWorkflow';
 
-function OrdersPagination({ page, totalPages, onPageChange, className = '' }) {
-  return (
-    <div className={`flex items-center justify-between gap-2 ${className}`}>
-      <button
-        type="button"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        className="btn-secondary text-xs disabled:opacity-50 sm:flex-none sm:text-sm"
-      >
-        Previous
-      </button>
-      <span className="text-xs text-stone-500 sm:text-sm">
-        Page {page} of {totalPages}
-      </span>
-      <button
-        type="button"
-        disabled={page >= totalPages}
-        onClick={() => onPageChange(page + 1)}
-        className="btn-secondary text-xs disabled:opacity-50 sm:flex-none sm:text-sm"
-      >
-        Next
-      </button>
-    </div>
-  );
+const PAGE_SIZE = 8;
+
+function mergeOrders(existing, incoming) {
+  const ids = new Set(existing.map((order) => order.id));
+  return [...existing, ...incoming.filter((order) => !ids.has(order.id))];
 }
 
-function AdminOrderAction({ order, acting, onAction }) {
-  const statusButton = getAdminStatusButton(order);
-  if (!statusButton) {
-    return <span className="text-xs text-stone-400">—</span>;
+function syncSelection(items, setSelected, setMobileDetailOrder) {
+  if (items.length === 0) {
+    setSelected(null);
+    setMobileDetailOrder(null);
+    return;
   }
-  if (statusButton.disabled) {
-    return (
-      <button
-        type="button"
-        disabled
-        className="cursor-not-allowed whitespace-nowrap rounded-lg border border-stone-200 bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-500"
-      >
-        {statusButton.label}
-      </button>
-    );
-  }
+  setSelected((prev) => {
+    const match = prev ? items.find((order) => order.id === prev.id) : null;
+    return match ?? items[0];
+  });
+  setMobileDetailOrder((prev) => {
+    if (!prev) return prev;
+    return items.find((order) => order.id === prev.id) ?? prev;
+  });
+}
+
+function OrderInfoButton({ onClick, className = '' }) {
   return (
     <button
       type="button"
-      disabled={acting === order.id}
-      onClick={(e) => {
-        e.stopPropagation();
-        onAction(order.id, statusButton.nextStatus);
-      }}
-      className="btn-primary whitespace-nowrap py-1.5 text-xs disabled:opacity-50"
+      onClick={onClick}
+      className={`glass-icon-btn !h-5 !w-5 shrink-0 !rounded-lg text-stone-500 hover:text-brand-700 ${className}`}
+      aria-label="View order details"
+      title="Order details"
     >
-      {acting === order.id ? 'Updating...' : statusButton.label}
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
     </button>
+  );
+}
+
+function LoadMoreIndicator({ loadingMore, hasMore, loadedCount, total }) {
+  if (loadingMore) {
+    return (
+      <div className="flex justify-center py-4">
+        <LoadingSpinner size="sm" />
+      </div>
+    );
+  }
+  if (!hasMore && loadedCount > 0) {
+    return (
+      <p className="py-3 text-center text-xs text-stone-400">
+        Showing all {total} order{total !== 1 ? 's' : ''}
+      </p>
+    );
+  }
+  return <div className="h-2" aria-hidden />;
+}
+
+function InfiniteScrollFooter({ hasMore, loading, loadingMore, onLoadMore, loadedCount, total }) {
+  const sentinelRef = useInfiniteScroll(onLoadMore, {
+    enabled: hasMore && !loading && !loadingMore,
+  });
+
+  return (
+    <>
+      <div ref={sentinelRef} className="h-px w-full shrink-0" aria-hidden />
+      <LoadMoreIndicator
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        loadedCount={loadedCount}
+        total={total}
+      />
+    </>
   );
 }
 
@@ -76,60 +98,122 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [mobileDetailOrder, setMobileDetailOrder] = useState(null);
   const [acting, setActing] = useState(null);
 
-  const fetchOrders = useCallback(async (silent = false) => {
+  const hasMore = page < totalPages;
+
+  const listParams = useCallback(
+    (pageNum, pageSize = PAGE_SIZE) => ({
+      page: pageNum,
+      page_size: pageSize,
+      status: statusFilter || undefined,
+      search: search || undefined,
+    }),
+    [search, statusFilter],
+  );
+
+  const fetchFirstPage = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
       setLoading(true);
       setError(null);
     }
     try {
-      const { data } = await orderApi.list({
-        page,
-        page_size: 8,
-        status: statusFilter || undefined,
-        search: search || undefined,
-      });
+      const { data } = await orderApi.list(listParams(1));
       setOrders(data.items);
       setTotal(data.total);
       setTotalPages(data.total_pages);
-      if (data.items.length > 0) {
-        setSelected((prev) => {
-          const match = prev ? data.items.find((o) => o.id === prev.id) : null;
-          return match ?? data.items[0];
-        });
-      } else {
-        setSelected(null);
-      }
+      setPage(1);
+      syncSelection(data.items, setSelected, setMobileDetailOrder);
     } catch {
       if (!silent) setError('Failed to load orders');
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [page, search, statusFilter]);
+  }, [listParams]);
+
+  const refreshLoadedOrders = useCallback(async () => {
+    try {
+      const pageSize = PAGE_SIZE * page;
+      const { data } = await orderApi.list(listParams(1, pageSize));
+      setOrders(data.items);
+      setTotal(data.total);
+      setTotalPages(data.total_pages);
+      syncSelection(data.items, setSelected, setMobileDetailOrder);
+    } catch {
+      /* ignore background refresh errors */
+    }
+  }, [listParams, page]);
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const { data } = await orderApi.list(listParams(nextPage));
+      setOrders((prev) => mergeOrders(prev, data.items));
+      setTotal(data.total);
+      setTotalPages(data.total_pages);
+      setPage(nextPage);
+    } catch {
+      toast.error('Failed to load more orders');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [hasMore, listParams, loading, loadingMore, page]);
+
+  const closeMobileDetail = useCallback(() => {
+    if (window.history.state?.adminOrderModal) {
+      window.history.back();
+      return;
+    }
+    setMobileDetailOrder(null);
+  }, []);
+
+  const openMobileDetail = useCallback((order) => {
+    setMobileDetailOrder(order);
+  }, []);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchFirstPage();
+  }, [fetchFirstPage]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchOrders(true);
+      refreshLoadedOrders();
     }, 10000);
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [refreshLoadedOrders]);
+
+  useEffect(() => {
+    if (!mobileDetailOrder) return undefined;
+
+    const onPopState = () => setMobileDetailOrder(null);
+    window.history.pushState({ adminOrderModal: true }, '');
+    window.addEventListener('popstate', onPopState);
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+    };
+  }, [mobileDetailOrder]);
 
   const handleAdminAction = async (orderPk, newStatus) => {
     setActing(orderPk);
     try {
       await orderApi.updateStatus(orderPk, newStatus);
       toast.success('Order updated');
-      fetchOrders();
+      await refreshLoadedOrders();
       if (selected?.id === orderPk) {
         const { data } = await orderApi.get(orderPk);
         setSelected(data);
+      }
+      if (mobileDetailOrder?.id === orderPk) {
+        const { data } = await orderApi.get(orderPk);
+        setMobileDetailOrder(data);
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update order');
@@ -138,7 +222,10 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const selectedStatusButton = selected ? getAdminStatusButton(selected) : null;
+  const loadedSummary = useMemo(
+    () => ({ loadedCount: orders.length, total, hasMore }),
+    [orders.length, total, hasMore],
+  );
 
   return (
     <div>
@@ -149,19 +236,19 @@ export default function AdminOrdersPage() {
           type="search"
           placeholder="Search orders..."
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => setSearch(e.target.value)}
           className="input-field"
         />
         <GlassSelect
           value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          onChange={(e) => setStatusFilter(e.target.value)}
           options={[
             { value: '', label: 'All Statuses' },
             ...ORDER_STATUSES.map((s) => ({ value: s, label: s })),
           ]}
         />
         <p className="flex items-center text-sm text-stone-500 sm:col-span-2 lg:col-span-1">
-          {total} order{total !== 1 ? 's' : ''} found
+          {loadedSummary.loadedCount} of {total} order{total !== 1 ? 's' : ''} shown
         </p>
       </div>
 
@@ -170,49 +257,49 @@ export default function AdminOrdersPage() {
           <LoadingSpinner />
         </div>
       )}
-      {error && <ErrorState message={error} onRetry={fetchOrders} />}
+      {error && <ErrorState message={error} onRetry={fetchFirstPage} />}
       {!loading && !error && orders.length === 0 && (
         <EmptyState icon="orders" title="No orders found" message="Try adjusting your filters." />
       )}
 
       {!loading && !error && orders.length > 0 && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="flex min-h-[32rem] flex-col lg:hidden">
-            <div className="flex-1 space-y-3">
+          <div className="flex flex-col lg:hidden">
+            <div className="space-y-3">
               {orders.map((order) => (
-                <button
-                  key={order.id}
-                  type="button"
-                  onClick={() => setSelected(order)}
-                  className={`card w-full text-left ${
-                    selected?.id === order.id ? 'ring-2 ring-brand-500' : ''
-                  }`}
-                >
-                  <div className="mb-2 flex items-start justify-between gap-2">
+                <article key={order.id} className="card relative w-full pr-8 text-left">
+                  <OrderInfoButton
+                    onClick={() => openMobileDetail(order)}
+                    className="absolute right-2.5 top-2.5"
+                  />
+                  <div className="mb-2 flex items-start justify-between gap-2 pr-1">
                     <span className="break-all font-mono text-xs font-medium">{order.order_id}</span>
                     <StatusBadge status={normalizeOrderStatus(order.status)} />
                   </div>
                   <p className="text-sm font-medium">{order.customer_name}</p>
+                  <p className="mt-1 text-xs text-stone-500">{formatDate(order.created_at)}</p>
                   <p className="mt-1 text-sm text-brand-700">{formatCurrency(order.total)}</p>
                   {order.assigned_driver_name && (
                     <p className="mt-1 text-xs text-stone-500">Driver: {order.assigned_driver_name}</p>
                   )}
-                  <div className="mt-3" onClick={(e) => e.stopPropagation()} role="presentation">
+                  <div className="mt-3">
                     <AdminOrderAction order={order} acting={acting} onAction={handleAdminAction} />
                   </div>
-                </button>
+                </article>
               ))}
             </div>
-            <OrdersPagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              className="mt-auto shrink-0 border-t border-white/35 px-1 pt-4 [&_button]:flex-1"
+            <InfiniteScrollFooter
+              hasMore={hasMore}
+              loading={loading}
+              loadingMore={loadingMore}
+              onLoadMore={loadMore}
+              loadedCount={loadedSummary.loadedCount}
+              total={loadedSummary.total}
             />
           </div>
 
-          <div className="glass-table-wrap hidden min-h-[32rem] flex-col overflow-hidden lg:col-span-2 lg:flex">
-            <div className="flex-1 overflow-x-auto">
+          <div className="glass-table-wrap hidden flex-col overflow-hidden lg:col-span-2 lg:flex">
+            <div className="overflow-x-auto">
               <table className="w-full min-w-[700px] text-left text-sm">
                 <thead className="glass-table-head">
                   <tr>
@@ -250,93 +337,42 @@ export default function AdminOrdersPage() {
                 </tbody>
               </table>
             </div>
-            <OrdersPagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              className="mt-auto shrink-0 border-t px-4 py-3"
+            <InfiniteScrollFooter
+              hasMore={hasMore}
+              loading={loading}
+              loadingMore={loadingMore}
+              onLoadMore={loadMore}
+              loadedCount={loadedSummary.loadedCount}
+              total={loadedSummary.total}
             />
           </div>
 
-          <div className={`card h-fit ${selected ? '' : 'hidden lg:block'}`}>
+          <div className="card hidden h-fit lg:block">
             {selected ? (
               <>
                 <h3 className="mb-4 font-semibold">Order Details</h3>
-                <dl className="mb-4 space-y-3 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">ID</dt>
-                    <dd className="break-all text-right font-mono text-xs">{selected.order_id}</dd>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">Status</dt>
-                    <dd><StatusBadge status={normalizeOrderStatus(selected.status)} /></dd>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">Customer</dt>
-                    <dd>{selected.customer_name}</dd>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">Phone</dt>
-                    <dd>{selected.phone}</dd>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">Type</dt>
-                    <dd>{selected.order_type}</dd>
-                  </div>
-                  {selected.assigned_driver_name && (
-                    <div className="flex flex-wrap justify-between gap-2">
-                      <dt className="text-stone-500">Driver</dt>
-                      <dd className="text-right">
-                        {selected.assigned_driver_name}
-                        {selected.assigned_driver_phone && (
-                          <span className="block text-xs text-stone-500">{selected.assigned_driver_phone}</span>
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  {selected.payment_status && (
-                    <div className="flex flex-wrap justify-between gap-2">
-                      <dt className="text-stone-500">Payment</dt>
-                      <dd className="capitalize">{selected.payment_status}</dd>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <dt className="text-stone-500">Placed</dt>
-                    <dd className="text-right">{formatDate(selected.created_at)}</dd>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2 border-t border-stone-100 pt-2 font-bold">
-                    <dt>Total</dt>
-                    <dd>{formatCurrency(selected.total)}</dd>
-                  </div>
-                </dl>
-                {selected.notes && (
-                  <p className="glass-surface-soft mb-4 p-2 text-sm text-stone-600">
-                    Note: {selected.notes}
-                  </p>
-                )}
-                <ul className="divide-y border-t text-sm">
-                  {selected.items?.map((item) => (
-                    <li key={item.id} className="flex justify-between py-2">
-                      <span>{item.name} × {item.quantity}</span>
-                      <span>{formatCurrency(item.line_total)}</span>
-                    </li>
-                  ))}
-                </ul>
-                {selectedStatusButton && (
-                  <div className="mt-4 border-t border-stone-100 pt-4">
-                    <AdminOrderAction
-                      order={selected}
-                      acting={acting}
-                      onAction={handleAdminAction}
-                    />
-                  </div>
-                )}
+                <AdminOrderDetailsContent
+                  order={selected}
+                  acting={acting}
+                  onAction={handleAdminAction}
+                />
               </>
             ) : (
               <p className="text-sm text-stone-500">Select an order to view details</p>
             )}
           </div>
         </div>
+      )}
+
+      {mobileDetailOrder && (
+        <ModalShell title="Order Details" onClose={closeMobileDetail} centered compact>
+          <AdminOrderDetailsContent
+            order={mobileDetailOrder}
+            compact
+            showAction={false}
+            showDeliveryInfo={false}
+          />
+        </ModalShell>
       )}
     </div>
   );

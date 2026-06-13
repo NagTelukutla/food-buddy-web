@@ -6,7 +6,9 @@ import CartItem from '../components/cart/CartItem';
 import CartSummary from '../components/cart/CartSummary';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
 import CustomerLoginRequired from '../components/auth/CustomerLoginRequired';
+import { getSelectedRestaurantMenuPath } from '../utils/restaurantPaths';
 import {
   canPlaceOrders,
   canUseCartFeatures,
@@ -17,6 +19,8 @@ import {
 export default function CartPage() {
   const { items, subtotal, tax, total, updateQuantity, removeItem } = useCart();
   const { activeSessions } = useAuth();
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const customerSignedIn = canPlaceOrders(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);
   const loginRequired = !customerSignedIn;
@@ -42,14 +46,14 @@ export default function CartPage() {
           title="Your cart is empty"
           message="Browse our menu and add some delicious dishes."
           action={
-            <Link to="/menu" className="btn-primary">
-              View Menu
+            <Link to={menuPath} className="btn-primary">
+              {selectedRestaurant ? 'View Menu' : 'Discover Restaurants'}
             </Link>
           }
         />
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
-          <div className="card order-2 lg:order-1 lg:col-span-2">
+          <div className="card cart-items-panel order-2 lg:order-1 lg:col-span-2">
             {items.map((item) => (
               <CartItem
                 key={item.id}
@@ -65,7 +69,6 @@ export default function CartPage() {
               tax={tax}
               total={total}
               orderingDisabled={false}
-              loginRequired={loginRequired}
             />
           </div>
         </div>

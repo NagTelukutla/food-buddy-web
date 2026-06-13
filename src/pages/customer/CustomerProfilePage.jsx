@@ -10,6 +10,8 @@ import StatusBadge from '../../components/common/StatusBadge';
 import ProfileLogoutButton from '../../components/layout/ProfileLogoutButton';
 import { customerIcons } from '../../utils/navLinks';
 import { formatCurrency, formatDate } from '../../utils/format';
+import { useSelectedRestaurant } from '../../context/SelectedRestaurantContext';
+import { getSelectedRestaurantMenuPath } from '../../utils/restaurantPaths';
 import { filterOrdersByPhone, formatPhoneDisplay } from '../../utils/phone';
 
 const quickActions = [
@@ -55,6 +57,8 @@ function getInitials(name = '') {
 }
 
 export default function CustomerProfilePage() {
+  const { selectedRestaurant } = useSelectedRestaurant();
+  const menuPath = getSelectedRestaurantMenuPath(selectedRestaurant);
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -244,8 +248,8 @@ export default function CustomerProfilePage() {
               title="No orders yet"
               message="Start exploring our menu and place your first order."
               action={
-                <Link to="/menu" className="btn-primary px-6 py-2 text-sm">
-                  Browse Menu
+                <Link to={menuPath} className="btn-primary px-6 py-2 text-sm">
+                  {selectedRestaurant ? 'Browse Menu' : 'Discover Restaurants'}
                 </Link>
               }
             />

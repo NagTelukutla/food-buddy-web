@@ -1,4 +1,5 @@
-import { canUseCartFeatures } from './roles';
+import { canUseCartFeatures, hasCustomerSession } from './roles';
+import { getSelectedRestaurantMenuPath } from './restaurantPaths';
 
 const locationIcon = (
   <svg className="h-4 w-4" viewBox="0 0 682.667 682.667" fill="none" aria-hidden>
@@ -301,12 +302,41 @@ function shouldShowStaffNav(buckets) {
   return true;
 }
 
+function shouldShowPublicMenuNav(activeSessions, selectedRestaurant) {
+  return hasCustomerSession(activeSessions) && !!selectedRestaurant?.id;
+}
+
+/** Customer is browsing a restaurant menu or continuing that order flow. */
+function isCustomerInsideRestaurant(pathname = '/') {
+  return (
+    /^\/restaurant\/\d+/.test(pathname) ||
+    pathname === '/cart' ||
+    pathname === '/checkout'
+  );
+}
+
+function shouldShowBottomMenuNav(activeSessions, selectedRestaurant, pathname = '/') {
+  return shouldShowPublicMenuNav(activeSessions, selectedRestaurant)
+    && isCustomerInsideRestaurant(pathname);
+}
+
+function buildPublicMenuNavItem(selectedRestaurant) {
+  return {
+    id: 'menu',
+    to: getSelectedRestaurantMenuPath(selectedRestaurant),
+    label: 'Menu',
+    icon: icons.menu,
+    group: 'public',
+  };
+}
+
 /** Build visible navbar links from active login sessions. */
-export function buildNavLinks(activeSessions = [], hasSelectedRes = false) {
+export function buildNavLinks(activeSessions = [], selectedRestaurant = null) {
   const buckets = new Set(activeSessions.map((s) => s.bucket));
   const showCart = canUseCartFeatures(activeSessions);
   const showStaffNav = shouldShowStaffNav(buckets);
   const driverOnly = isDriverOnlySession(buckets);
+  const showMenuNav = shouldShowPublicMenuNav(activeSessions, selectedRestaurant);
 
   const links = [];
 
@@ -314,10 +344,8 @@ export function buildNavLinks(activeSessions = [], hasSelectedRes = false) {
     links.push(
       { id: 'home', to: '/', label: 'Home', end: true, icon: icons.home, group: 'public' }
     );
-    if (hasSelectedRes) {
-      links.push(
-        { id: 'menu', to: '/menu', label: 'Menu', icon: icons.menu, group: 'public' }
-      );
+    if (showMenuNav) {
+      links.push(buildPublicMenuNavItem(selectedRestaurant));
     }
   }
 
@@ -361,15 +389,20 @@ const BOTTOM_NAV_FALLBACKS = [
   { id: 'menu', to: '/menu', label: 'Menu', icon: icons.menu, group: 'public' },
 ];
 
-function padBottomNavLinks(links, hasSelectedRes = false) {
+function padBottomNavLinks(links, selectedRestaurant = null, activeSessions = [], pathname = '/') {
   const seen = new Set(links.map((l) => l.id));
   const padded = [...links];
+  const showMenuNav = shouldShowBottomMenuNav(activeSessions, selectedRestaurant, pathname);
 
   for (const fallback of BOTTOM_NAV_FALLBACKS) {
     if (padded.length >= 4) break;
-    if (fallback.id === 'menu' && !hasSelectedRes) continue;
+    if (fallback.id === 'menu' && !showMenuNav) continue;
     if (!seen.has(fallback.id)) {
-      padded.push(fallback);
+      if (fallback.id === 'menu' && selectedRestaurant) {
+        padded.push(buildPublicMenuNavItem(selectedRestaurant));
+      } else {
+        padded.push(fallback);
+      }
       seen.add(fallback.id);
     }
   }
@@ -378,7 +411,7 @@ function padBottomNavLinks(links, hasSelectedRes = false) {
 }
 
 /** Bottom bar links — exactly 4 items (profile is appended separately in BottomNav). */
-export function buildBottomNavLinks(activeSessions = [], pathname = '/', hasSelectedRes = false) {
+export function buildBottomNavLinks(activeSessions = [], pathname = '/', selectedRestaurant = null) {
   const buckets = new Set(activeSessions.map((s) => s.bucket));
   const driverOnly = isDriverOnlySession(buckets);
   const isStaffRoute =
@@ -402,8 +435,10 @@ export function buildBottomNavLinks(activeSessions = [], pathname = '/', hasSele
     return DELIVERY_NAV_ITEMS;
   }
 
-  const links = buildNavLinks(activeSessions, hasSelectedRes).filter((l) => !l.isAuth);
-  return padBottomNavLinks(links, hasSelectedRes);
+  const links = buildNavLinks(activeSessions, selectedRestaurant).filter((l) => !l.isAuth);
+  const showBottomMenu = shouldShowBottomMenuNav(activeSessions, selectedRestaurant, pathname);
+  const bottomLinks = showBottomMenu ? links : links.filter((l) => l.id !== 'menu');
+  return padBottomNavLinks(bottomLinks, selectedRestaurant, activeSessions, pathname);
 }
 
 /** Staff signed in without a customer session — dashboard in header, profile via dropdown. */

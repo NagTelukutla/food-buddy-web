@@ -75,8 +75,13 @@ export default function AppNavbar() {
     location.pathname.startsWith('/platform') ||
     location.pathname.startsWith('/delivery');
   const staffOnlyHeader = isStaffOnlyHeader(activeSessions) && isStaffRoute;
-  const navLinks = useMemo(() => buildNavLinks(activeSessions, !!selectedRestaurant), [activeSessions, selectedRestaurant]);
+  const navLinks = useMemo(
+    () => buildNavLinks(activeSessions, selectedRestaurant),
+    [activeSessions, selectedRestaurant]
+  );
   const showLogin = shouldShowLogin(activeSessions);
+  const onAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const showMobileLoginPill = showLogin && !onAuthPage && !searchOpen;
   const customerSession = getCustomerSession(activeSessions);
   const staffSessions = getStaffSessions(activeSessions);
   const isLoggedOut = showLogin;
@@ -108,10 +113,11 @@ export default function AppNavbar() {
     const isAdminOrDriverRoute =
       location.pathname.startsWith('/admin') || location.pathname.startsWith('/delivery');
 
+    if (!selectedRestaurant?.id) return false;
     if (isAdminOrDriverRoute) return false;
     if (isAdminOrDriverSession && !buckets.has('customer')) return false;
     return true;
-  }, [activeSessions, location.pathname]);
+  }, [activeSessions, location.pathname, selectedRestaurant]);
 
   const showLocation = showSearch;
 
@@ -171,7 +177,13 @@ export default function AppNavbar() {
         {!showMainNav && <div className="hidden flex-1 md:block" aria-hidden />}
 
         <div className="flex shrink-0 items-center gap-2">
-          {showSearch && !searchOpen && (
+          {showMobileLoginPill && (
+            <Link to="/login" className="nav-login-btn md:hidden">
+              Login
+            </Link>
+          )}
+
+          {showSearch && !searchOpen && !showLogin && (
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
@@ -198,8 +210,8 @@ export default function AppNavbar() {
                 onLogout={handleLogout}
               />
             </div>
-          ) : showLogin ? (
-            <Link to="/login" className="nav-admin-btn hidden md:inline-flex">
+          ) : showLogin && !onAuthPage ? (
+            <Link to="/login" className="nav-login-btn hidden md:inline-flex">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
               </svg>

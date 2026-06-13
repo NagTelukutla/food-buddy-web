@@ -118,7 +118,6 @@ export default function CheckoutPage() {
       });
 
       clearCart();
-      toast.success('Payment successful!');
       navigate('/order-success', {
         state: { order: verified.order, payment: verified.payment },
       });
@@ -212,7 +211,7 @@ export default function CheckoutPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
         <div className="order-1 lg:order-2">
-          <CartSummary subtotal={subtotal} tax={tax} total={total} showCheckout={false} />
+          <CartSummary items={items} subtotal={subtotal} tax={tax} total={total} showCheckout={false} />
           <div className="card mt-4 text-sm text-stone-600">
             <p className="font-semibold text-stone-800">Secure payment</p>
             <p className="mt-1">
@@ -269,8 +268,8 @@ export default function CheckoutPage() {
             <div>
               <label className="mb-1 block text-sm font-medium">Delivery Address *</label>
               <textarea
-                className="input-field"
-                rows={2}
+                className="input-field min-h-[7rem] resize-y"
+                rows={4}
                 placeholder="Street, city, pincode"
                 {...register('delivery_address', { required: orderType === 'Delivery' ? 'Address required' : false })}
               />

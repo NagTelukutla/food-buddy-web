@@ -6,7 +6,6 @@ import { useMenu } from '../hooks/useMenu';
 import { useCart } from '../context/CartContext';
 import { useSelectedRestaurant } from '../context/SelectedRestaurantContext';
 import PageContainer from '../components/common/PageContainer';
-import PageTitle from '../components/common/PageTitle';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import ErrorState from '../components/common/ErrorState';
 import EmptyState from '../components/common/EmptyState';
@@ -103,35 +102,37 @@ export default function RestaurantPage() {
   }
 
   return (
-    <div>
+    <div className="restaurant-page">
       {restaurant && (
         <>
-          <HeroSlider settings={restaurant} />
-          
-          <PageContainer className="!py-6">
-            <div className="mb-8 rounded-2xl bg-white/60 border border-stone-200/60 p-6 backdrop-blur-md">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <h1 className="font-display text-3xl font-extrabold text-stone-900">{restaurant.name}</h1>
-                  {restaurant.tagline && (
-                    <p className="mt-1 text-base text-stone-500 italic">"{restaurant.tagline}"</p>
-                  )}
-                  {restaurant.description && (
-                    <p className="mt-3 text-sm text-stone-600 max-w-3xl">{restaurant.description}</p>
-                  )}
-                </div>
-                {restaurant.cuisine_type && (
-                  <div className="self-start sm:self-center">
-                    <span className="inline-flex items-center rounded-full bg-brand-50 px-4 py-1.5 text-sm font-bold text-brand-700 border border-brand-100">
+          <HeroSlider
+            settings={restaurant}
+            showActions={false}
+            menuLink={`/restaurant/${restaurantIdInt}#restaurant-menu`}
+          />
+
+          <PageContainer className="restaurant-page-content !px-4 !pb-6 !pt-0 sm:!px-6">
+            <div className="premium-info-panel restaurant-info-panel">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="home-heading">{restaurant.name}</h1>
+                  {restaurant.cuisine_type && (
+                    <span className="glass-pill shrink-0 px-3 py-1 text-xs font-semibold text-brand-700 sm:text-sm">
                       {restaurant.cuisine_type}
                     </span>
-                  </div>
+                  )}
+                </div>
+                {restaurant.tagline && (
+                  <p className="home-lead mt-1">{restaurant.tagline}</p>
+                )}
+                {restaurant.description && (
+                  <p className="home-card-body mt-2 max-w-3xl">{restaurant.description}</p>
                 )}
               </div>
 
-              <div className="mt-6 border-t border-stone-100 pt-6 grid grid-cols-1 gap-4 sm:grid-cols-3 text-sm text-stone-600">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
+              <div className="restaurant-info-details">
+                <div className="restaurant-info-row">
+                  <div className="restaurant-info-icon" aria-hidden>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -139,38 +140,40 @@ export default function RestaurantPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="font-semibold text-stone-900">Address</p>
-                    <p className="truncate text-xs text-stone-500" title={restaurant.address}>{restaurant.address}</p>
+                    <p className="text-xs leading-relaxed text-stone-500">{restaurant.address}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
+                <div className="restaurant-info-row">
+                  <div className="restaurant-info-icon" aria-hidden>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-stone-900">Working Hours</p>
-                    <p className="text-xs text-stone-500">{restaurant.working_hours || 'Daily: 11 AM - 11 PM'}</p>
+                    <p className="text-xs leading-relaxed text-stone-500 whitespace-pre-line">
+                      {restaurant.working_hours || 'Daily: 11 AM - 11 PM'}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-stone-100 text-stone-500">
+                <div className="restaurant-info-row">
+                  <div className="restaurant-info-icon" aria-hidden>
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                     </svg>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-semibold text-stone-900">Contact</p>
-                    <p className="text-xs text-stone-500">{restaurant.phone}</p>
+                    <p className="text-xs leading-relaxed text-stone-500">{restaurant.phone}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10">
-              <h2 className="mb-6 font-display text-2xl font-bold text-stone-900">Menu Items</h2>
+            <div className="premium-section !pb-4" id="restaurant-menu">
+              <h2 className="home-heading mb-4 sm:mb-5">Menu Items</h2>
               
               <MenuFilters
                 search={search}
@@ -198,7 +201,7 @@ export default function RestaurantPage() {
               )}
 
               {!menuLoading && !menuError && menuItems.length > 0 && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+                <div className="premium-menu-grid premium-menu-grid--compact">
                   {menuItems.map((item) => (
                     <MenuCard
                       key={item.id}

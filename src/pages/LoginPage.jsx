@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { getLoginRedirectMessage } from '../utils/authSessions';
 import { getRequiredRolesForPath } from '../utils/routeGuard';
 import { getDashboardPath, isAdminRole, normalizeRole, ROLES } from '../utils/roles';
 
@@ -15,7 +14,6 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm();
 
   const fromPath = location.state?.from?.pathname;
-  const redirectMessage = getLoginRedirectMessage(fromPath || '');
 
   const resolvePostLoginPath = (role, targetFrom) => {
     const normalizedRole = normalizeRole(role);
@@ -75,16 +73,11 @@ export default function LoginPage() {
 
   return (
     <div className="glass-auth-shell">
-      <div className="glass-surface-strong w-full max-w-md p-6 sm:p-8">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold">Sign In</h1>
+      <div className="glass-auth-card glass-surface-strong w-full max-w-md p-6 sm:p-8">
+        <div className="auth-heading mb-6 text-center sm:mb-6">
+          <h1 className="text-2xl font-bold sm:text-2xl">Sign In</h1>
         </div>
-        {redirectMessage && (
-          <p className="glass-notice mb-4 text-center text-brand-900">
-            {redirectMessage}
-          </p>
-        )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="auth-form space-y-4">
           <div>
             <input
               className="input-field"
@@ -112,11 +105,11 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm">
+        <p className="auth-footer-link mt-4 text-center text-sm">
           No account? <Link to="/register" className="text-brand-600 hover:underline">Register</Link>
         </p>
         {activeSessions.length > 0 && (
-          <div className="glass-surface-soft mt-4 p-3 text-xs text-stone-600">
+          <div className="glass-surface-soft mt-4 hidden p-3 text-xs text-stone-600 sm:block">
             <p className="mb-2 font-medium text-stone-700">Active sessions (other roles stay signed in)</p>
             <ul className="space-y-1">
               {activeSessions.map((s) => (

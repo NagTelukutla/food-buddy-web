@@ -31,15 +31,20 @@ export const customerApi = {
 };
 
 export const deliveryApi = {
-  partners: (restaurantId) => client.get('/api/delivery/partners', { params: { restaurant_id: restaurantId } }),
+  partners: (restaurantId) =>
+    client.get('/api/delivery/partners', {
+      params: restaurantId ? { restaurant_id: restaurantId } : undefined,
+    }),
   createPartner: (data) => client.post('/api/delivery/partners', data),
   assign: (orderPk, data) => client.put(`/api/orders/${orderPk}/assign-delivery`, data),
-  assignments: () => client.get('/api/delivery/assignments'),
+  assignments: (params) => client.get('/api/delivery/assignments', { params }),
   report: () => client.get('/api/delivery/report'),
-  accept: (orderId) => client.post('/api/delivery/assignments/accept', { order_id: orderId }),
+  accept: (orderId, coords = {}) =>
+    client.post('/api/delivery/assignments/accept', { order_id: orderId, ...coords }),
   updateStatus: (orderId, data) =>
     client.post('/api/delivery/assignments/update-status', { order_id: orderId, ...data }),
   updateLocation: (data) => client.post('/api/delivery/location', data),
+  updatePartnerLocation: (data) => client.post('/api/delivery/partner-location', data),
   liveTrack: (orderId) => client.get(`/api/delivery/live-track/${encodeURIComponent(orderId)}`),
 };
 

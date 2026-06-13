@@ -37,9 +37,9 @@ export default function RegisterPage() {
 
   return (
     <div className="glass-auth-shell">
-      <div className="glass-surface-strong w-full max-w-md p-6 sm:p-8">
-        <h1 className="mb-6 text-2xl font-bold">Create Account</h1>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="glass-auth-card glass-surface-strong w-full max-w-md p-6 sm:p-8">
+        <h1 className="auth-heading mb-6 text-2xl font-bold">Create Account</h1>
+        <form onSubmit={handleSubmit(onSubmit)} className="auth-form space-y-4">
           <input className="input-field" placeholder="Full name" {...register('full_name', { required: true })} />
           <input className="input-field" placeholder="Username" {...register('username', { required: true })} />
           <input className="input-field" placeholder="Email" type="email" {...register('email', { required: true })} />
@@ -49,7 +49,7 @@ export default function RegisterPage() {
             {loading ? 'Creating...' : 'Register'}
           </button>
         </form>
-        <p className="mt-4 text-center text-sm">
+        <p className="auth-footer-link mt-4 text-center text-sm">
           <Link to="/login" className="text-brand-600 hover:underline">Already have an account?</Link>
         </p>
       </div>

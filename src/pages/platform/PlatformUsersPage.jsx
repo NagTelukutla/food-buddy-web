@@ -57,6 +57,7 @@ export default function PlatformUsersPage() {
   );
 
   const restaurantName = (user) => {
+    if (normalizeRole(user.role) === ROLES.DRIVER) return 'Shared network';
     if (normalizeRole(user.role) === ROLES.ADMIN && !user.restaurant_id) return 'Not mapped';
     const id = user.restaurant_id;
     return restaurants.find((r) => r.id === id)?.name || (id ? `#${id}` : '—');
@@ -86,9 +87,8 @@ export default function PlatformUsersPage() {
       const payload = {
         ...data,
         role,
-        restaurant_id:
-          role === ROLES.DRIVER && data.restaurant_id ? Number(data.restaurant_id) : null,
-        branch_id: role === ROLES.DRIVER && data.branch_id ? Number(data.branch_id) : null,
+        restaurant_id: null,
+        branch_id: null,
         is_active: !!data.is_active,
       };
       if (editing) {
@@ -162,7 +162,7 @@ export default function PlatformUsersPage() {
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Mobile</th>
-                <th className="px-4 py-3">Restaurant</th>
+                <th className="px-4 py-3">{activeTab === ROLES.DRIVER ? 'Network' : 'Restaurant'}</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
